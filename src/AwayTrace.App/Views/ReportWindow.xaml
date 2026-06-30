@@ -1,0 +1,63 @@
+<Window x:Class="AwayTrace.App.Views.ReportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="자리비움 리포트"
+        Width="920"
+        Height="640"
+        MinWidth="760"
+        MinHeight="520"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="자리비움 리포트" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PeriodText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <Border DockPanel.Dock="Right"
+                    Background="{StaticResource PanelBackground}"
+                    BorderBrush="{StaticResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    Padding="14,8"
+                    CornerRadius="6">
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+            </Border>
+        </DockPanel>
+
+        <DockPanel Grid.Row="1" Margin="0,22,0,12">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button Content="보호 종료"
+                        Command="{Binding StopProtectionCommand}"
+                        Visibility="{Binding CanStopProtection, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Content="JSON 내보내기" Command="{Binding ExportJsonCommand}" />
+                <Button Content="CSV 내보내기" Command="{Binding ExportCsvCommand}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                <TextBlock Text="필터" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                <ComboBox Width="160" ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}" />
+            </StackPanel>
+        </DockPanel>
+
+        <ListView Grid.Row="2" ItemsSource="{Binding Events}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="시간" Width="90" DisplayMemberBinding="{Binding TimeText}" />
+                    <GridViewColumn Header="유형" Width="130" DisplayMemberBinding="{Binding TypeText}" />
+                    <GridViewColumn Header="내용" Width="630" DisplayMemberBinding="{Binding DetailText}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,16,0,0"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   Text="{Binding NoticeText}" />
+    </Grid>
+</Window>

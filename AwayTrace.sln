@@ -1,0 +1,33 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwayTrace.Core", "src\AwayTrace.Core\AwayTrace.Core.csproj", "{7F8D1D0F-6E45-46F5-9284-4F0F96E92F01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwayTrace.App", "src\AwayTrace.App\AwayTrace.App.csproj", "{BD553050-59A8-42BC-A0D3-5B5F7D1875AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwayTrace.Tests", "tests\AwayTrace.Tests\AwayTrace.Tests.csproj", "{09E8268C-9323-4DA0-94C5-32BAA7B29648}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7F8D1D0F-6E45-46F5-9284-4F0F96E92F01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F8D1D0F-6E45-46F5-9284-4F0F96E92F01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F8D1D0F-6E45-46F5-9284-4F0F96E92F01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F8D1D0F-6E45-46F5-9284-4F0F96E92F01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD553050-59A8-42BC-A0D3-5B5F7D1875AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD553050-59A8-42BC-A0D3-5B5F7D1875AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD553050-59A8-42BC-A0D3-5B5F7D1875AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD553050-59A8-42BC-A0D3-5B5F7D1875AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09E8268C-9323-4DA0-94C5-32BAA7B29648}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09E8268C-9323-4DA0-94C5-32BAA7B29648}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09E8268C-9323-4DA0-94C5-32BAA7B29648}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09E8268C-9323-4DA0-94C5-32BAA7B29648}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

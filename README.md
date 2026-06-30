@@ -1,0 +1,154 @@
+# AwayTrace
+
+AwayTrace는 Windows 11용 로컬 데스크톱 MVP 앱입니다. 사용자가 직접 보호를 시작한 자기 PC에서 지정 업무 폴더의 파일 변경 정황을 로컬 SQLite 데이터베이스에 기록하고, 복귀 후 타임라인 리포트를 보여줍니다.
+
+이 앱은 감시, 스파이웨어, 포렌식, 법적 증거 수집, 침입자 식별 도구가 아닙니다. 파일 변경과 파일 열람은 다릅니다. AwayTrace는 파일 열람 여부나 행위자를 증명하지 않습니다.
+
+프라이버시 원칙은 [PRIVACY.md](PRIVACY.md)에 따로 정리되어 있습니다.
+
+## v0.1 범위
+
+- 최초 실행 시 앱 종료용 PIN 설정
+- PIN 평문 저장 금지
+- PBKDF2-HMAC-SHA256 + 랜덤 salt 해시 저장
+- PIN 최소 6자리
+- PIN 5회 실패 시 30초 대기
+- 감시 폴더 추가 / 삭제
+- 보호 시작 시 SQLite 세션 저장
+- `FileSystemWatcher` 기반 파일 이벤트 기록
+  - 생성
+  - 수정
+  - 삭제
+  - 이름 변경
+- 2초 debounce로 중복 이벤트 억제
+- watcher 오류 이벤트 기록
+- 보호 시작 후 Windows `LockWorkStation` 호출
+- 보호 중 트레이 아이콘 표시
+- Windows 로그인 후 자동 실행
+- 보호 중 등록 앱 실행 차단
+  - 카카오톡 / 네이트온 프리셋
+  - 사용자 지정 프로세스 이름 등록
+  - 대화 내용, 읽음 여부, 채팅방 정보는 기록하지 않음
+- 옵션 탭
+  - 보호 시작 시 Windows 잠금 여부
+  - 보호 중 감시 폴더 읽기/복사 차단 여부
+  - Windows 자동 실행 여부
+  - 보호 시작 글로벌 단축키
+  - PIN 변경
+- Windows 세션 lock / unlock 이벤트 기록
+- 강제 종료 또는 재시작 후 이전 활성 세션을 `기록 신뢰도 낮음`으로 표시
+- PIN 인증 후 보호 종료
+- 자리비움 리포트 화면
+- 이벤트 유형 필터
+- JSON / CSV 내보내기
+
+## 하지 않는 것
+
+- 서버 전송
+- 클라우드 업로드
+- 스크린샷
+- 키 입력 기록
+- 클립보드 기록
+- 웹캠 / 마이크
+- 파일 내용 읽기 또는 저장
+- 파일 해시 저장
+- 메신저 대화 내용 기록
+- 메신저 읽음 여부 확인
+- 채팅방 또는 상대방 정보 기록
+- 행위자 식별
+- 파일 열람 여부 증명
+- 법적 증거 또는 포렌식 도구 주장
+
+## 파일 열람/복사에 대한 입장
+
+`FileSystemWatcher`는 파일 생성, 수정, 삭제, 이름 변경에는 강하지만 파일을 읽거나 복사하는 행위를 직접 알려주지 않습니다. AwayTrace는 이 한계를 숨기지 않습니다.
+
+대신 옵션 탭의 `보호 중 감시 폴더 읽기/복사 차단`을 켜면 보호 시작 중 Windows 권한을 이용해 감시 폴더 접근을 차단합니다. 이 기능은 열람/복사를 증명하는 기능이 아니라, 보호 중 접근을 막는 기능입니다. Windows 권한 적용에 실패하면 보호 시작을 취소합니다.
+
+## v0.1 제외 기능
+
+- USB 감지
+- 원격접속 감지
+- 회사 보안 에이전트 점검
+- AI 요약
+
+## 저장 위치
+
+앱 데이터와 SQLite DB는 아래 로컬 경로에만 저장됩니다.
+
+```text
+%LocalAppData%\AwayTrace\awaytrace.db
+```
+
+주요 테이블:
+
+- `settings`: PIN salt/hash, 실패 횟수, 잠금 해제 시각
+- `monitored_folders`: 감시 폴더 목록
+- `sessions`: 보호 세션
+- `file_events`: 파일 변경 정황 이벤트
+
+`file_events`에는 `timestamp`, `event_type`, `path`, `old_path`, `session_id`만 저장합니다.
+
+## 프로젝트 구조
+
+```text
+AwayTrace.sln
+PLAN.md
+README.md
+src/
+  AwayTrace.Core/
+    Models/
+    Services/
+    Storage/
+  AwayTrace.App/
+    Services/
+    ViewModels/
+    Views/
+tests/
+  AwayTrace.Tests/
+```
+
+## 실행 요구사항
+
+- Windows 11
+- .NET 8 SDK
+
+## 빌드
+
+```powershell
+dotnet build
+```
+
+## 테스트
+
+외부 NuGet 테스트 프레임워크 없이 콘솔 기반 단위 테스트 러너를 사용합니다. `AwayTrace.Tests.csproj`는 `dotnet test`가 해당 러너를 실행하도록 `VSTest` 타깃을 정의합니다.
+
+```powershell
+dotnet test
+```
+
+## 실행
+
+```powershell
+dotnet run --project src\AwayTrace.App\AwayTrace.App.csproj
+```
+
+첫 실행 시 PIN 설정 창이 열립니다. PIN은 AwayTrace 보호 종료에만 사용되며 Windows 로그인 비밀번호와 연동되지 않습니다.
+
+기본 보호 시작 단축키는 `Ctrl+Alt+A`입니다. 옵션 탭에서 변경하거나 끌 수 있습니다.
+
+## 사용 흐름
+
+1. 첫 실행에서 PIN을 설정합니다.
+2. 메인 화면에서 감시할 업무 폴더를 추가합니다.
+3. `보호 시작`을 누르면 세션이 저장되고 watcher가 시작됩니다.
+4. Windows 잠금에 성공하면 앱은 트레이에 남습니다.
+5. 복귀 후 트레이 메뉴에서 `보호 종료`를 선택합니다.
+6. PIN 인증에 성공하면 watcher가 중지되고 리포트 창이 열립니다.
+7. 필요한 경우 JSON 또는 CSV로 리포트를 내보냅니다.
+
+## 주의
+
+AwayTrace 리포트는 파일 변경 정황을 보여줄 뿐입니다. 누가 변경했는지, 파일을 열람했는지, 특정 행위가 있었다는 법적 증거를 제공하지 않습니다.
+
+PIN은 Windows 로그인 비밀번호와 연동되지 않고, 복구용 이메일이나 서버에도 저장되지 않습니다. PIN을 잊어버린 경우 앱 데이터를 삭제하고 다시 설정해야 합니다.

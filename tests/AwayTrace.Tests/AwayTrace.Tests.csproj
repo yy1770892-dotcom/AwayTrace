@@ -1,0 +1,20 @@
+<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <TestDotNetHost Condition="'$(DotNetHostPath)' != ''">$(DotNetHostPath)</TestDotNetHost>
+    <TestDotNetHost Condition="'$(TestDotNetHost)' == ''">dotnet</TestDotNetHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AwayTrace.Core\AwayTrace.Core.csproj" />
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Target Name="VSTest" DependsOnTargets="Build">
+    <Exec Command="&quot;$(TestDotNetHost)&quot; &quot;$(TargetPath)&quot;" />
+  </Target>
+</Project>

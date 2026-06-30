@@ -1,0 +1,333 @@
+<Window x:Class="AwayTrace.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AwayTrace"
+        Width="980"
+        Height="680"
+        MinWidth="860"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        Closing="OnClosing">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="AwayTrace" FontSize="30" FontWeight="SemiBold" />
+                <TextBlock Text="로컬 PC 보호와 파일 변경 정황 리포트"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+            <Border DockPanel.Dock="Right"
+                    Background="{StaticResource PanelBackground}"
+                    BorderBrush="{StaticResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    Padding="14,8"
+                    CornerRadius="6">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="상태" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+        </DockPanel>
+
+        <TabControl Grid.Row="1" Margin="0,22,0,0">
+            <TabItem Header="보호">
+                <Grid Margin="0,18,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="16"
+                            CornerRadius="6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                                <Run Text="AwayTrace는 지정 폴더의 파일 변경 정황을 로컬에 기록합니다. " />
+                                <Run Text="파일 내용, 키 입력, 화면, 메신저 대화 내용은 기록하지 않습니다." />
+                            </TextBlock>
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="1"
+                                       Text="{Binding FolderLockStatusText}"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontWeight="SemiBold"
+                                       Margin="18,0,0,0" />
+                            <CheckBox Grid.Row="1"
+                                      Grid.ColumnSpan="2"
+                                      Content="보호 중 감시 폴더 읽기/복사 차단"
+                                      IsChecked="{Binding LockProtectedFoldersEnabled, Mode=TwoWay}"
+                                      Margin="0,12,0,0"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="0,18,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="감시 폴더" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding Folders}"
+                                 SelectedItem="{Binding SelectedFolder}"
+                                 DisplayMemberPath="Path"
+                                 Padding="8" />
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="폴더 추가" Command="{Binding AddFolderCommand}" />
+                            <Button Content="삭제" Command="{Binding RemoveFolderCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <DockPanel Grid.Row="2" Margin="0,20,0,0" LastChildFill="False">
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                            <Button Content="{Binding ProtectionButtonText}" Command="{Binding StartProtectionCommand}" />
+                            <Button Content="최근 리포트 보기" Command="{Binding RecentReportCommand}" />
+                        </StackPanel>
+                        <TextBlock DockPanel.Dock="Right"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Text="파일 변경과 파일 열람은 다릅니다." />
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="메신저 보호">
+                <Grid Margin="0,18,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="16"
+                            CornerRadius="6">
+                        <StackPanel>
+                            <CheckBox Content="보호 시작 후 등록한 메신저/업무 앱 실행 차단"
+                                      IsChecked="{Binding BlockProtectedAppsEnabled, Mode=TwoWay}"
+                                      Foreground="{StaticResource TextPrimaryBrush}"
+                                      FontWeight="SemiBold" />
+                            <TextBlock Margin="0,8,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Text="AwayTrace를 실행하거나 앱을 등록하는 순간에는 종료하지 않습니다. 보호 시작 후 등록한 앱이 실행되어 있거나 새로 실행되면 종료하고 차단 시도만 시스템 이벤트로 남깁니다." />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,16,0,12">
+                        <Button Content="카카오톡 프리셋" Command="{Binding AddKakaoTalkCommand}" />
+                        <Button Content="네이트온 프리셋" Command="{Binding AddNateOnCommand}" />
+                        <Button Content="실행 중인 앱 선택" Command="{Binding AddRunningAppCommand}" />
+                        <Button Content="선택 삭제" Command="{Binding RemoveProtectedAppCommand}" />
+                    </StackPanel>
+
+                    <ListView Grid.Row="2"
+                              ItemsSource="{Binding ProtectedApps}"
+                              SelectedItem="{Binding SelectedProtectedApp}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="차단" Width="70">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" HorizontalAlignment="Center" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="이름" Width="220" DisplayMemberBinding="{Binding DisplayName}" />
+                                <GridViewColumn Header="프로세스" Width="220" DisplayMemberBinding="{Binding ProcessName}" />
+                                <GridViewColumn Header="설명" Width="360">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Text="보호 중 실행되면 종료하고 정황만 기록" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <Border Grid.Row="3"
+                            Margin="0,16,0,0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="14"
+                            CornerRadius="6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="앱 이름"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,10,6" />
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="1"
+                                       Text="프로세스명 또는 exe 이름"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,10,6" />
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="0"
+                                     Text="{Binding CustomAppDisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,10,0"
+                                     ToolTip="예: 사내 메신저. 비워두면 프로세스명을 이름으로 사용합니다."
+                                     VerticalContentAlignment="Center" />
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="1"
+                                     Text="{Binding CustomAppProcessName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,10,0"
+                                     ToolTip="예: Messenger 또는 Messenger.exe. 일반 사용자는 실행 중인 앱 선택을 권장합니다."
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Row="1"
+                                    Grid.Column="2"
+                                    Content="고급 추가"
+                                    Command="{Binding AddCustomProtectedAppCommand}" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="옵션">
+                <Grid Margin="0,18,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="16"
+                            CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock Text="보호 시작 동작" FontSize="18" FontWeight="SemiBold" />
+                            <CheckBox Margin="0,12,0,0"
+                                      Content="보호 시작 시 Windows 잠금 실행"
+                                      IsChecked="{Binding LockWorkstationOnProtectionStart, Mode=TwoWay}"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
+                            <CheckBox Margin="0,10,0,0"
+                                      Content="보호 중 감시 폴더 읽기/복사 차단"
+                                      IsChecked="{Binding LockProtectedFoldersEnabled, Mode=TwoWay}"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Margin="24,6,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Text="실험적 옵션입니다. 파일 열람/복사를 증명하는 대신 Windows 권한으로 감시 폴더 접근을 차단합니다. 실패하면 보호 시작을 취소합니다." />
+                            <CheckBox Margin="0,10,0,0"
+                                      Content="Windows 로그인 후 AwayTrace 자동 실행"
+                                      IsChecked="{Binding IsStartWithWindowsEnabled, Mode=TwoWay}"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            Margin="0,16,0,0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="16"
+                            CornerRadius="6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="보호 시작 단축키" FontSize="18" FontWeight="SemiBold" />
+                            <CheckBox Grid.Row="1"
+                                      Grid.Column="0"
+                                      Content="사용"
+                                      IsChecked="{Binding HotkeyEnabled, Mode=TwoWay}"
+                                      Margin="0,14,14,0"
+                                      VerticalAlignment="Center"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="1"
+                                     Text="{Binding HotkeyText, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,14,10,0"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Row="1"
+                                    Grid.Column="2"
+                                    Content="기본값"
+                                    Command="{Binding ResetHotkeyCommand}"
+                                    Margin="0,14,12,0" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="3"
+                                       Margin="0,14,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Text="기본값: Ctrl+Alt+A. 예: Ctrl+Shift+L" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="2"
+                            Margin="0,16,0,0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="16"
+                            CornerRadius="6">
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Content="PIN 변경" Command="{Binding ChangePinCommand}" />
+                            <StackPanel>
+                                <TextBlock Text="PIN" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Margin="0,8,0,0"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Text="PIN은 로컬 보호 종료에만 사용됩니다. 복구용 이메일이나 서버 저장은 제공하지 않습니다." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,16,0,0"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   Text="AwayTrace는 개인용 로컬 보호 앱입니다. 행위자 식별, 메신저 내용 확인, 파일 열람 증명 기능을 제공하지 않습니다." />
+    </Grid>
+</Window>

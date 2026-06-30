@@ -1,0 +1,30 @@
+<Window x:Class="AwayTrace.App.Views.PinPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AwayTrace PIN 인증"
+        Width="400"
+        Height="250"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="PIN 인증" FontSize="22" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1"
+                   Margin="0,8,0,18"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Text="보호 종료 또는 앱 종료를 위해 PIN을 입력하세요." />
+        <PasswordBox Grid.Row="2" x:Name="PinBox" MaxLength="32" />
+        <TextBlock Grid.Row="3" x:Name="MessageText" Margin="0,12,0,0" Foreground="#FF9B9B" TextWrapping="Wrap" />
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="취소" Click="OnCancelClick" Background="#2A343D" Foreground="{StaticResource TextPrimaryBrush}" />
+            <Button Content="확인" Click="OnVerifyClick" />
+        </StackPanel>
+    </Grid>
+</Window>
