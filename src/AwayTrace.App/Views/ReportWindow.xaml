@@ -32,11 +32,13 @@
 
         <DockPanel Grid.Row="1" Margin="0,22,0,12">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button Content="새로고침"
+                        Command="{Binding RefreshCommand}"
+                        Visibility="{Binding CanRefresh, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <Button Content="보호 종료"
                         Command="{Binding StopProtectionCommand}"
                         Visibility="{Binding CanStopProtection, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <Button Content="JSON 내보내기" Command="{Binding ExportJsonCommand}" />
-                <Button Content="CSV 내보내기" Command="{Binding ExportCsvCommand}" />
+                <Button Content="기록 내보내기 (엑셀용 CSV)" Command="{Binding ExportCsvCommand}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                 <TextBlock Text="필터" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" />

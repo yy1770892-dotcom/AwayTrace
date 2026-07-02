@@ -493,12 +493,14 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var events = await _database.GetSessionEventsAsync(sessionId);
+        var database = _database;
+        var events = await database.GetSessionEventsAsync(sessionId);
         var viewModel = new ReportViewModel(
             session,
             events,
             new ReportExportService(),
-            new SaveFilePickerService());
+            new SaveFilePickerService(),
+            () => database.GetSessionEventsAsync(sessionId));
         var window = new ReportWindow(viewModel)
         {
             Owner = _mainWindow?.IsVisible == true ? _mainWindow : null

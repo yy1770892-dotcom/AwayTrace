@@ -9,25 +9,28 @@ namespace AwayTrace.App.ViewModels;
 public sealed class ReportViewModel : ObservableObject
 {
     private readonly WatchSession _session;
-    private readonly IReadOnlyList<FileEventRecord> _allEvents;
     private readonly ReportExportService _exportService;
     private readonly ISaveFilePickerService _saveFilePicker;
+    private readonly Func<Task<IReadOnlyList<FileEventRecord>>>? _reloadEvents;
+    private IReadOnlyList<FileEventRecord> _allEvents;
     private string _selectedFilter = "전체";
 
     public ReportViewModel(
         WatchSession session,
         IReadOnlyList<FileEventRecord> events,
         ReportExportService exportService,
-        ISaveFilePickerService saveFilePicker)
+        ISaveFilePickerService saveFilePicker,
+        Func<Task<IReadOnlyList<FileEventRecord>>>? reloadEvents = null)
     {
         _session = session;
         _allEvents = events;
         _exportService = exportService;
         _saveFilePicker = saveFilePicker;
+        _reloadEvents = reloadEvents;
         Events = [];
-        ExportJsonCommand = new RelayCommand(ExportJson);
         ExportCsvCommand = new RelayCommand(ExportCsv);
         StopProtectionCommand = new RelayCommand(() => StopProtectionRequested?.Invoke(this, EventArgs.Empty), () => CanStopProtection);
+        RefreshCommand = new RelayCommand(RefreshAsync, () => CanRefresh);
         ApplyFilter();
     }
 
@@ -76,24 +79,27 @@ public sealed class ReportViewModel : ObservableObject
 
     public bool CanStopProtection => _session.State == ProtectionSessionState.Active && _session.EndedAt is null;
 
-    public ICommand ExportJsonCommand { get; }
+    // 보호가 진행 중일 때만 새 기록이 쌓이므로 그때만 새로고침을 보여준다.
+    public bool CanRefresh => _reloadEvents is not null && CanStopProtection;
 
     public ICommand ExportCsvCommand { get; }
 
     public ICommand StopProtectionCommand { get; }
 
+    public ICommand RefreshCommand { get; }
+
     public event EventHandler? StopProtectionRequested;
 
-    private void ExportJson()
+    private async Task RefreshAsync()
     {
-        var path = _saveFilePicker.PickSaveFile(
-            "JSON 리포트 내보내기",
-            "JSON 파일 (*.json)|*.json",
-            $"AwayTrace-{_session.StartedAt:yyyyMMdd-HHmmss}.json");
-        if (path is not null)
+        if (_reloadEvents is null)
         {
-            _exportService.ExportJson(path, _session, _allEvents);
+            return;
         }
+
+        _allEvents = await _reloadEvents();
+        ApplyFilter();
+        OnPropertyChanged(nameof(StatusText));
     }
 
     private void ExportCsv()
@@ -118,8 +124,10 @@ public sealed class ReportViewModel : ObservableObject
 
     private void ApplyFilter()
     {
+        // 화면에서는 최신 기록을 맨 위에 보여준다 (긴 세션에서 스크롤 불편 방지).
+        // CSV 내보내기는 분석용이므로 시간순(오래된 순)을 유지한다.
         Events.Clear();
-        foreach (var item in _allEvents.Where(MatchesFilter))
+        foreach (var item in _allEvents.Where(MatchesFilter).OrderByDescending(item => item.Timestamp))
         {
             Events.Add(new ReportEventRow(item));
         }
