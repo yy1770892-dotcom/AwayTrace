@@ -116,6 +116,12 @@
                     <DockPanel Grid.Row="2" Margin="0,20,0,0" LastChildFill="False">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                             <Button Content="{Binding ProtectionButtonText}" Command="{Binding StartProtectionCommand}" />
+                            <!-- 잠금 여부는 보호 시작과 함께 결정하는 것이라 버튼 옆에 배치 -->
+                            <CheckBox Content="보호 시작 때 Windows 잠금"
+                                      IsChecked="{Binding LockWorkstationOnProtectionStart, Mode=TwoWay}"
+                                      VerticalAlignment="Center"
+                                      Margin="10,0,10,0"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
                             <Button Content="창 숨기기" Command="{Binding HideWindowCommand}" />
                             <Button Content="최근 리포트 보기" Command="{Binding RecentReportCommand}" />
                             <Button Content="{Binding PcUsageLogButtonText}" Command="{Binding PcUsageLogCommand}" />
@@ -273,11 +279,9 @@
                                        FontSize="18"
                                        FontWeight="Bold"
                                        Foreground="{StaticResource TextPrimaryBrush}" />
+                            <!-- "보호 시작 때 Windows 잠금" 체크박스는 찾기 쉽도록
+                                 보호 탭의 보호 시작 버튼 옆으로 이동했다. -->
                             <CheckBox Margin="0,12,0,0"
-                                      Content="보호 시작 때 Windows 잠금 실행"
-                                      IsChecked="{Binding LockWorkstationOnProtectionStart, Mode=TwoWay}"
-                                      Foreground="{StaticResource TextPrimaryBrush}" />
-                            <CheckBox Margin="0,10,0,0"
                                       Content="Windows 로그인 때 AwayTrace 자동 실행"
                                       IsChecked="{Binding IsStartWithWindowsEnabled, Mode=TwoWay}"
                                       Foreground="{StaticResource TextPrimaryBrush}" />
