@@ -1,0 +1,72 @@
+<Window x:Class="AwayTrace.App.Views.PcUsageLogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PC 사용 기록"
+        Width="940"
+        Height="620"
+        MinWidth="820"
+        MinHeight="520"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="PC 사용 기록" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="컴퓨터 켜진 시간, 꺼진 시간, 규격 외 사용 시간을 참고용으로 보여줍니다."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+            <Border DockPanel.Dock="Right"
+                    Background="{StaticResource PanelBackground}"
+                    BorderBrush="{StaticResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    Padding="14,8"
+                    CornerRadius="6">
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+            </Border>
+        </DockPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,22,0,12"
+                Background="{StaticResource PanelBackground}"
+                BorderBrush="{StaticResource BorderBrushMuted}"
+                BorderThickness="1"
+                Padding="14"
+                CornerRadius="6">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <TextBlock Text="표준 사용 시간" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,10,0" />
+                    <TextBox Width="90" Text="{Binding StandardStartText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" />
+                    <TextBlock Text="~" VerticalAlignment="Center" Margin="8,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBox Width="90" Text="{Binding StandardEndText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" />
+                    <Button Content="저장" Command="{Binding SaveStandardHoursCommand}" Margin="12,0,0,0" />
+                </StackPanel>
+                <Button DockPanel.Dock="Right" Content="새로고침" Command="{Binding RefreshCommand}" />
+            </DockPanel>
+        </Border>
+
+        <ListView Grid.Row="2" ItemsSource="{Binding Events}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="규격 외" Width="140" DisplayMemberBinding="{Binding OutsideHoursText}" />
+                    <GridViewColumn Header="시간" Width="160" DisplayMemberBinding="{Binding TimeText}" />
+                    <GridViewColumn Header="기록 유형" Width="170" DisplayMemberBinding="{Binding TypeText}" />
+                    <GridViewColumn Header="출처" Width="150" DisplayMemberBinding="{Binding SourceText}" />
+                    <GridViewColumn Header="내용" Width="300" DisplayMemberBinding="{Binding DetailText}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,16,0,0"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   Text="이 기록은 PC 사용 정황을 보여주는 참고용입니다. 행위자 식별, 파일 열람 증명, 법적 증거 기능을 제공하지 않습니다." />
+    </Grid>
+</Window>

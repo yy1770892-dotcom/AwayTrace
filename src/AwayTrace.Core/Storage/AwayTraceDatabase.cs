@@ -38,6 +38,7 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
                 CREATE TABLE IF NOT EXISTS monitored_folders (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     path TEXT NOT NULL UNIQUE,
+                    folder_kind TEXT NOT NULL DEFAULT 'RecordOnly',
                     created_at TEXT NOT NULL
                 );
 
@@ -70,12 +71,25 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
                     created_at TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS pc_usage_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    source TEXT NOT NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_file_events_session_time
                     ON file_events(session_id, timestamp);
 
                 CREATE INDEX IF NOT EXISTS idx_sessions_started_at
                     ON sessions(started_at);
+
+                CREATE INDEX IF NOT EXISTS idx_pc_usage_events_time
+                    ON pc_usage_events(timestamp);
                 """);
+
+            EnsureMonitoredFolderKindColumn(db);
         }
     }
 
@@ -175,20 +189,60 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
         return Task.CompletedTask;
     }
 
+    public Task AddPcUsageEventAsync(PcUsageEvent usageEvent)
+    {
+        lock (_gate)
+        {
+            using var db = Open();
+            db.Execute(
+                """
+                INSERT INTO pc_usage_events(timestamp, event_type, description, source)
+                VALUES(?, ?, ?, ?);
+                """,
+                new SqliteParameter(usageEvent.Timestamp),
+                new SqliteParameter(usageEvent.EventType),
+                new SqliteParameter(usageEvent.Description),
+                new SqliteParameter(usageEvent.Source));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<PcUsageEvent>> GetPcUsageEventsAsync(DateTimeOffset from, int limit = 200)
+    {
+        lock (_gate)
+        {
+            using var db = Open();
+            var events = db.Query(
+                    """
+                    SELECT id, timestamp, event_type, description, source
+                    FROM pc_usage_events
+                    WHERE timestamp >= ?
+                    ORDER BY timestamp DESC, id DESC
+                    LIMIT ?;
+                    """,
+                    new SqliteParameter(from),
+                    new SqliteParameter(limit))
+                .Select(ReadPcUsageEvent)
+                .ToArray();
+            return Task.FromResult<IReadOnlyList<PcUsageEvent>>(events);
+        }
+    }
+
     public Task<IReadOnlyList<MonitoredFolder>> GetFoldersAsync()
     {
         lock (_gate)
         {
             using var db = Open();
             var folders = db.Query(
-                    "SELECT id, path, created_at FROM monitored_folders ORDER BY path;")
+                    "SELECT id, path, folder_kind, created_at FROM monitored_folders ORDER BY folder_kind, path;")
                 .Select(ReadFolder)
                 .ToArray();
             return Task.FromResult<IReadOnlyList<MonitoredFolder>>(folders);
         }
     }
 
-    public Task AddFolderAsync(string path)
+    public Task AddFolderAsync(string path, MonitoredFolderKind kind = MonitoredFolderKind.RecordOnly)
     {
         var normalizedPath = Path.GetFullPath(path);
         lock (_gate)
@@ -196,10 +250,13 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
             using var db = Open();
             db.Execute(
                 """
-                INSERT OR IGNORE INTO monitored_folders(path, created_at)
-                VALUES(?, ?);
+                INSERT INTO monitored_folders(path, folder_kind, created_at)
+                VALUES(?, ?, ?)
+                ON CONFLICT(path) DO UPDATE SET
+                    folder_kind = excluded.folder_kind;
                 """,
                 new SqliteParameter(normalizedPath),
+                new SqliteParameter(kind),
                 new SqliteParameter(DateTimeOffset.Now));
         }
 
@@ -374,12 +431,31 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
 
     private SqliteConnectionLite Open() => new(_dbPath);
 
+    private static void EnsureMonitoredFolderKindColumn(SqliteConnectionLite db)
+    {
+        var hasKindColumn = db.Query("PRAGMA table_info(monitored_folders);")
+            .Any(row => string.Equals(ReadString(row, "name"), "folder_kind", StringComparison.OrdinalIgnoreCase));
+        if (!hasKindColumn)
+        {
+            db.Execute("ALTER TABLE monitored_folders ADD COLUMN folder_kind TEXT NOT NULL DEFAULT 'RecordOnly';");
+        }
+    }
+
     private static MonitoredFolder ReadFolder(IReadOnlyDictionary<string, object?> row)
     {
         return new MonitoredFolder(
             ReadLong(row, "id"),
             ReadString(row, "path"),
+            ReadFolderKind(row),
             ReadDateTimeOffset(row, "created_at"));
+    }
+
+    private static MonitoredFolderKind ReadFolderKind(IReadOnlyDictionary<string, object?> row)
+    {
+        var value = ReadString(row, "folder_kind");
+        return Enum.TryParse<MonitoredFolderKind>(value, ignoreCase: true, out var kind)
+            ? kind
+            : MonitoredFolderKind.RecordOnly;
     }
 
     private static WatchSession ReadSession(IReadOnlyDictionary<string, object?> row)
@@ -414,6 +490,16 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
             ReadNullableString(row, "executable_path"),
             ReadLong(row, "is_enabled") == 1,
             ReadDateTimeOffset(row, "created_at"));
+    }
+
+    private static PcUsageEvent ReadPcUsageEvent(IReadOnlyDictionary<string, object?> row)
+    {
+        return new PcUsageEvent(
+            ReadLong(row, "id"),
+            ReadDateTimeOffset(row, "timestamp"),
+            Enum.Parse<PcUsageEventType>(ReadString(row, "event_type")),
+            ReadString(row, "description"),
+            ReadString(row, "source"));
     }
 
     private static string NormalizeProcessName(string processName)

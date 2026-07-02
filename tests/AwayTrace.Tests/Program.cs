@@ -7,6 +7,12 @@ var tests = new (string Name, Func<Task> Body)[]
     ("FileChangeDebouncer suppresses duplicates inside the debounce window", FileChangeDebouncerSuppressesDuplicates),
     ("FileChangeDebouncer allows the same event after the debounce window", FileChangeDebouncerAllowsAfterWindow),
     ("FileChangeDebouncer includes old path for rename keys", FileChangeDebouncerUsesOldPathForRename),
+    ("ProtectedAppScanSpeed keeps normal and fast polling intervals", ProtectedAppScanSpeedKeepsPollingIntervals),
+    ("PcUsageSchedule detects outside standard hours", PcUsageScheduleDetectsOutsideStandardHours),
+    ("PcUsageSchedule supports overnight standard hours", PcUsageScheduleSupportsOvernightHours),
+    ("AwayTraceDatabase stores PC usage events", PcUsageEventsPersistInDatabase),
+    ("AwayTraceDatabase keeps protected apps after reopening", ProtectedAppsPersistAfterReopeningDatabase),
+    ("AwayTraceDatabase stores monitored folders by kind", MonitoredFoldersPersistWithKinds),
     ("SessionRecoveryService marks active sessions as abnormal", SessionRecoveryMarksActiveSessionsAbnormal),
     ("SessionRecoveryService leaves empty repositories unchanged", SessionRecoveryDoesNothingWithoutActiveSessions)
 };
@@ -68,6 +74,119 @@ static Task FileChangeDebouncerUsesOldPathForRename()
     return Task.CompletedTask;
 }
 
+static Task ProtectedAppScanSpeedKeepsPollingIntervals()
+{
+    Assert.Equal(250, (int)ProtectedAppScanSpeed.Normal);
+    Assert.Equal(100, (int)ProtectedAppScanSpeed.Fast);
+    return Task.CompletedTask;
+}
+
+static Task PcUsageScheduleDetectsOutsideStandardHours()
+{
+    var schedule = new PcUsageSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0));
+
+    Assert.False(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T10:00:00+09:00")));
+    Assert.True(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T22:00:00+09:00")));
+    return Task.CompletedTask;
+}
+
+static Task PcUsageScheduleSupportsOvernightHours()
+{
+    var schedule = new PcUsageSchedule(new TimeOnly(22, 0), new TimeOnly(6, 0));
+
+    Assert.False(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T23:00:00+09:00")));
+    Assert.False(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T05:30:00+09:00")));
+    Assert.True(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T12:00:00+09:00")));
+    return Task.CompletedTask;
+}
+
+static async Task PcUsageEventsPersistInDatabase()
+{
+    var dbPath = Path.Combine(Path.GetTempPath(), $"awaytrace-test-{Guid.NewGuid():N}.db");
+    try
+    {
+        var first = new AwayTraceDatabase(dbPath);
+        first.Initialize();
+        await first.AddPcUsageEventAsync(new PcUsageEvent(
+            0,
+            DateTimeOffset.Parse("2026-07-02T08:10:00+09:00"),
+            PcUsageEventType.AppStarted,
+            "AwayTrace 실행",
+            "AwayTrace"));
+
+        var second = new AwayTraceDatabase(dbPath);
+        second.Initialize();
+        var events = await second.GetPcUsageEventsAsync(DateTimeOffset.Parse("2026-07-01T00:00:00+09:00"), 20);
+
+        Assert.Equal(1, events.Count);
+        Assert.Equal(PcUsageEventType.AppStarted, events[0].EventType);
+        Assert.Equal("AwayTrace 실행", events[0].Description);
+        Assert.Equal("AwayTrace", events[0].Source);
+    }
+    finally
+    {
+        TryDelete(dbPath);
+        TryDelete(dbPath + "-wal");
+        TryDelete(dbPath + "-shm");
+    }
+}
+
+static async Task ProtectedAppsPersistAfterReopeningDatabase()
+{
+    var dbPath = Path.Combine(Path.GetTempPath(), $"awaytrace-test-{Guid.NewGuid():N}.db");
+    try
+    {
+        var first = new AwayTraceDatabase(dbPath);
+        first.Initialize();
+        await first.AddProtectedAppAsync("업무 메신저", "WorkMessenger.exe", @"C:\Tools\WorkMessenger.exe");
+
+        var second = new AwayTraceDatabase(dbPath);
+        second.Initialize();
+        var apps = await second.GetProtectedAppsAsync();
+
+        Assert.Equal(1, apps.Count);
+        Assert.Equal("업무 메신저", apps[0].DisplayName);
+        Assert.Equal("WorkMessenger", apps[0].ProcessName);
+        Assert.Equal(@"C:\Tools\WorkMessenger.exe", apps[0].ExecutablePath);
+        Assert.True(apps[0].IsEnabled);
+    }
+    finally
+    {
+        TryDelete(dbPath);
+        TryDelete(dbPath + "-wal");
+        TryDelete(dbPath + "-shm");
+    }
+}
+
+static async Task MonitoredFoldersPersistWithKinds()
+{
+    var dbPath = Path.Combine(Path.GetTempPath(), $"awaytrace-test-{Guid.NewGuid():N}.db");
+    var recordPath = Path.Combine(Path.GetTempPath(), $"awaytrace-record-{Guid.NewGuid():N}");
+    var lockPath = Path.Combine(Path.GetTempPath(), $"awaytrace-lock-{Guid.NewGuid():N}");
+    try
+    {
+        var first = new AwayTraceDatabase(dbPath);
+        first.Initialize();
+        await first.AddFolderAsync(recordPath);
+        await first.AddFolderAsync(lockPath, MonitoredFolderKind.Locked);
+        await first.AddFolderAsync(recordPath, MonitoredFolderKind.Locked);
+
+        var second = new AwayTraceDatabase(dbPath);
+        second.Initialize();
+        var folders = await second.GetFoldersAsync();
+
+        Assert.Equal(2, folders.Count);
+        Assert.Equal(MonitoredFolderKind.Locked, folders.Single(folder => folder.Path == recordPath).Kind);
+        Assert.Equal(MonitoredFolderKind.Locked, folders.Single(folder => folder.Path == lockPath).Kind);
+    }
+    finally
+    {
+        TryDelete(dbPath);
+        TryDelete(dbPath + "-wal");
+        TryDelete(dbPath + "-shm");
+    }
+}
+
 static async Task SessionRecoveryMarksActiveSessionsAbnormal()
 {
     var repository = new FakeSessionRepository(
@@ -86,6 +205,20 @@ static async Task SessionRecoveryMarksActiveSessionsAbnormal()
     Assert.Equal(1, recovered);
     Assert.Equal(1, repository.MarkedAbnormal.Count);
     Assert.True(repository.MarkedAbnormal[0].Reason.Contains("정상적인 보호 종료", StringComparison.Ordinal));
+}
+
+static void TryDelete(string path)
+{
+    try
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+    catch (IOException)
+    {
+    }
 }
 
 static async Task SessionRecoveryDoesNothingWithoutActiveSessions()

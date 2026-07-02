@@ -19,8 +19,12 @@ AwayTrace records local protection events and file-change context only. It does 
   - protection started
   - protection stopped
   - Windows lock/unlock
-  - protected app block attempt
-  - protected folder lock/unlock status
+  - protected app window hide / close events
+  - locked folder lock/unlock status
+- PC usage context events (reference only):
+  - AwayTrace start/exit time
+  - Windows lock/unlock time
+  - power-on/shutdown/unexpected-shutdown estimates based on Windows event log IDs 6005/6006/6008 (sleep/modern-standby resume may not be captured)
 
 Data is stored locally in:
 
@@ -44,13 +48,13 @@ Data is stored locally in:
 
 ## Messenger Protection
 
-AwayTrace may block user-registered apps such as KakaoTalk or NateOn while protection is active. This is process-level blocking only. AwayTrace does not inspect message contents, chat rooms, read status, contacts, or screen contents.
+While protection is active, AwayTrace can hide the windows of, or close, user-registered apps such as KakaoTalk or NateOn. This is a best-effort assist based on process names, not an official integration, and it does not guarantee that an app cannot be launched or used. AwayTrace does not inspect message contents, chat rooms, read status, contacts, or screen contents.
 
 ## File Reading and Copying
 
 File change monitoring cannot reliably prove that a file was read or copied. AwayTrace does not label file reading as confirmed evidence.
 
-When the protected-folder lock option is enabled, AwayTrace attempts to block reading/copying by applying Windows file permissions while protection is active. This is a prevention feature, not a proof-of-access feature.
+When a folder is registered as a locked folder, AwayTrace attempts to block reading/copying by applying Windows file permissions while protection is active. This is a prevention feature, not a proof-of-access feature. The lock targets the current Windows user account and does not guarantee protection against other administrator accounts.
 
 ## PIN and Recovery
 
@@ -74,13 +78,16 @@ When describing AwayTrace publicly, use phrases such as:
 
 - "local PC protection"
 - "file change context"
-- "protected app block attempt"
-- "protected folder lock"
+- "protected app window hide/close assist"
+- "locked folder access prevention"
+- "PC usage context (reference only)"
 
 Avoid phrases such as:
 
 - "detect who opened a file"
 - "prove file reading"
 - "catch an intruder"
+- "block messenger apps completely"
 - "monitor messenger messages"
+- "forensic PC usage evidence"
 

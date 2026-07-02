@@ -8,8 +8,12 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AwayTrace</AssemblyName>
     <RootNamespace>AwayTrace.App</RootNamespace>
+    <ApplicationIcon>Assets\AwayTrace.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\AwayTrace.Core\AwayTrace.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Assets\AwayTrace.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

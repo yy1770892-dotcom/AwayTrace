@@ -27,6 +27,14 @@ public sealed class StartupRegistrationService
         }
     }
 
+    public void RefreshIfEnabled()
+    {
+        if (IsEnabled())
+        {
+            Enable();
+        }
+    }
+
     public void Enable()
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath);

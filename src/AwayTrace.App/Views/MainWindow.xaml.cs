@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using AwayTrace.App.ViewModels;
+using MessageBox = System.Windows.MessageBox;
 
 namespace AwayTrace.App.Views;
 
@@ -25,8 +26,8 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
-            System.Windows.MessageBox.Show(
-                "보호 중에는 PIN 인증 후 종료해야 합니다.\n트레이 메뉴에서 보호 종료를 선택하세요.",
+            MessageBox.Show(
+                "보호 중에는 PIN 인증 후 종료해야 합니다.\n창이 숨겨지면 AwayTrace를 다시 실행하거나 Ctrl+Alt+A를 눌러 다시 열 수 있습니다.",
                 "AwayTrace",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

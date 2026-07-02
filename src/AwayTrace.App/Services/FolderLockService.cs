@@ -37,7 +37,7 @@ public sealed class FolderLockService
             if (result.ExitCode == 0)
             {
                 _lockedFolders.Add(folder);
-                await RecordSystemEventAsync(sessionId, $"보호 폴더 잠금: {folder}");
+                await RecordSystemEventAsync(sessionId, $"잠금 폴더 접근 차단: {folder}");
             }
             else
             {
@@ -53,14 +53,34 @@ public sealed class FolderLockService
         return FolderLockResult.Ok(_lockedFolders.ToArray());
     }
 
-    public async Task UnlockFoldersAsync(Guid sessionId)
+    public async Task UnlockFoldersAsync(Guid sessionId, IReadOnlyList<string>? folders = null)
     {
-        foreach (var folder in _lockedFolders.ToArray())
+        // 주의: 잠금 상태에서는 현재 사용자에게 RX가 deny라 Directory.Exists가
+        // ACCESS_DENIED로 false를 반환할 수 있다. 존재 확인으로 걸러내면
+        // 잠긴 폴더가 영영 해제되지 않으므로, 항상 해제를 시도한다.
+        var foldersToUnlock = _lockedFolders
+            .Concat(folders ?? [])
+            .Where(folder => !string.IsNullOrWhiteSpace(folder))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var folder in foldersToUnlock)
         {
             var result = await RunIcaclsAsync(folder, "/remove:d", _identity);
-            var message = result.ExitCode == 0
-                ? $"보호 폴더 잠금 해제: {folder}"
-                : $"보호 폴더 잠금 해제 실패: {folder} - {result.ErrorText}";
+            string message;
+            if (result.ExitCode == 0)
+            {
+                message = $"잠금 폴더 접근 차단 해제: {folder}";
+            }
+            else if (!Directory.Exists(folder))
+            {
+                message = $"잠금 폴더 접근 차단 해제 건너뜀(폴더 없음): {folder}";
+            }
+            else
+            {
+                message = $"잠금 폴더 접근 차단 해제 실패: {folder} - {result.ErrorText}";
+            }
+
             await RecordSystemEventAsync(sessionId, message);
         }
 

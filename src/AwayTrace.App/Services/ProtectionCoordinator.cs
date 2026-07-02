@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using AwayTrace.Core.Models;
@@ -39,19 +40,23 @@ public sealed class ProtectionCoordinator
     public Guid? CurrentSessionId => _currentSessionId;
 
     public async Task<ProtectionStartResult> StartProtectionAsync(
-        IReadOnlyList<string> folders,
+        IReadOnlyList<string> recordFolders,
+        IReadOnlyList<string> lockedFolders,
         bool lockWorkstation,
-        bool blockProtectedApps,
-        bool lockProtectedFolders)
+        bool protectRegisteredApps,
+        ProtectedAppProtectionMode protectedAppMode,
+        ProtectedAppScanSpeed protectedAppScanSpeed)
     {
         if (IsProtectionActive)
         {
             return ProtectionStartResult.Failed("이미 보호 중입니다.");
         }
 
-        if (folders.Count == 0)
+        var allFolders = NormalizeFolders(recordFolders.Concat(lockedFolders)).ToArray();
+        var foldersToLock = NormalizeFolders(lockedFolders).ToArray();
+        if (allFolders.Length == 0)
         {
-            return ProtectionStartResult.Failed("감시 폴더를 하나 이상 추가해 주세요.");
+            return ProtectionStartResult.Failed("기록 폴더 또는 잠금 폴더를 하나 이상 추가해 주세요.");
         }
 
         var sessionId = Guid.NewGuid();
@@ -61,58 +66,90 @@ public sealed class ProtectionCoordinator
             null,
             ProtectionSessionState.Active,
             false,
-            JsonSerializer.Serialize(folders, JsonOptions),
+            BuildFolderSnapshot(recordFolders, lockedFolders),
             null);
 
         await _database.CreateSessionAsync(session);
-        await _monitor.StartAsync(sessionId, folders);
-        if (lockProtectedFolders)
+        await _monitor.StartAsync(sessionId, allFolders);
+
+        var lockResult = await LockFoldersForSessionAsync(sessionId, foldersToLock);
+        if (!lockResult.Success)
         {
-            var folderLockResult = await _folderLock.LockFoldersAsync(sessionId, folders);
-            if (!folderLockResult.Success)
-            {
-                if (folderLockResult.LockedFolders.Count > 0)
-                {
-                    await _folderLock.UnlockFoldersAsync(sessionId);
-                }
-
-                _monitor.Stop();
-                await _database.DeleteSessionAsync(sessionId);
-                return ProtectionStartResult.Failed(
-                    "보호 폴더 잠금에 실패해 보호 시작을 취소했습니다.\n"
-                    + string.Join(Environment.NewLine, folderLockResult.Errors));
-            }
-
-            await RecordSystemEventAsync(sessionId, "보호 폴더 읽기/복사 차단 시작");
+            _monitor.Stop();
+            await _database.DeleteSessionAsync(sessionId);
+            return lockResult;
         }
 
-        if (blockProtectedApps)
+        if (protectRegisteredApps && protectedAppMode != ProtectedAppProtectionMode.LeaveOpen)
         {
-            _appBlocker.Start(sessionId);
-            await RecordSystemEventAsync(sessionId, "보호 앱 차단 시작");
+            _appBlocker.Start(sessionId, protectedAppMode, protectedAppScanSpeed);
+            await RecordSystemEventAsync(sessionId, protectedAppMode switch
+            {
+                ProtectedAppProtectionMode.HideWindows => "등록 앱 창 숨김 보호 시작",
+                ProtectedAppProtectionMode.Terminate => "등록 앱 종료 보호 시작",
+                _ => "등록 앱 보호 시작"
+            });
         }
 
         await RecordSystemEventAsync(sessionId, "보호 시작");
 
         if (lockWorkstation)
         {
-            var lockResult = _lockService.Lock();
-            if (!lockResult.Success)
+            var workstationLockResult = _lockService.Lock();
+            if (!workstationLockResult.Success)
             {
                 _appBlocker.Stop();
-                if (lockProtectedFolders)
-                {
-                    await _folderLock.UnlockFoldersAsync(sessionId);
-                }
-
+                await _folderLock.UnlockFoldersAsync(sessionId, foldersToLock);
                 _monitor.Stop();
                 await _database.DeleteSessionAsync(sessionId);
-                return ProtectionStartResult.Failed($"PC 잠금에 실패해 보호 시작을 취소했습니다. 사유: {lockResult.ErrorMessage}");
+                return ProtectionStartResult.Failed($"PC 잠금에 실패해 보호 시작을 취소했습니다. 사유: {workstationLockResult.ErrorMessage}");
             }
         }
 
         _currentSessionId = sessionId;
         return ProtectionStartResult.Ok(sessionId);
+    }
+
+    public async Task<ProtectionStartResult> ResumeActiveSessionAsync(
+        WatchSession session,
+        bool protectRegisteredApps,
+        ProtectedAppProtectionMode protectedAppMode,
+        ProtectedAppScanSpeed protectedAppScanSpeed)
+    {
+        if (IsProtectionActive)
+        {
+            return ProtectionStartResult.Failed("이미 보호 중입니다.");
+        }
+
+        var allFolders = ParseFolderSnapshot(session.FolderSnapshotJson);
+        var foldersToLock = ParseLockedFolderSnapshot(session.FolderSnapshotJson);
+        if (allFolders.Count == 0)
+        {
+            return ProtectionStartResult.Failed("복구할 보호 폴더 정보가 없습니다.");
+        }
+
+        if (foldersToLock.Count > 0)
+        {
+            await _folderLock.UnlockFoldersAsync(session.Id, foldersToLock);
+        }
+
+        await _monitor.StartAsync(session.Id, allFolders);
+
+        var lockResult = await LockFoldersForSessionAsync(session.Id, foldersToLock);
+        if (!lockResult.Success)
+        {
+            _monitor.Stop();
+            return lockResult;
+        }
+
+        if (protectRegisteredApps && protectedAppMode != ProtectedAppProtectionMode.LeaveOpen)
+        {
+            _appBlocker.Start(session.Id, protectedAppMode, protectedAppScanSpeed);
+        }
+
+        _currentSessionId = session.Id;
+        await RecordSystemEventAsync(session.Id, "재부팅 후 보호 모드 자동 복구 - 재부팅 중 기록 공백이 있을 수 있습니다.");
+        return ProtectionStartResult.Ok(session.Id);
     }
 
     public async Task<Guid?> StopProtectionAsync()
@@ -123,9 +160,12 @@ public sealed class ProtectionCoordinator
         }
 
         var sessionId = _currentSessionId.Value;
+        var session = await _database.GetSessionAsync(sessionId);
+        var lockedFolders = ParseLockedFolderSnapshot(session?.FolderSnapshotJson);
+
         await RecordSystemEventAsync(sessionId, "보호 종료");
         _appBlocker.Stop();
-        await _folderLock.UnlockFoldersAsync(sessionId);
+        await _folderLock.UnlockFoldersAsync(sessionId, lockedFolders);
         _monitor.Stop();
         await _database.EndSessionAsync(sessionId, DateTimeOffset.Now);
         _currentSessionId = null;
@@ -139,6 +179,104 @@ public sealed class ProtectionCoordinator
             : RecordSystemEventAsync(_currentSessionId.Value, description);
     }
 
+    public static IReadOnlyList<string> ParseFolderSnapshot(string? folderSnapshotJson)
+    {
+        return ParseFolderSnapshotEntries(folderSnapshotJson)
+            .Select(entry => entry.Path)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public static IReadOnlyList<string> ParseLockedFolderSnapshot(string? folderSnapshotJson)
+    {
+        return ParseFolderSnapshotEntries(folderSnapshotJson)
+            .Where(entry => entry.Kind == MonitoredFolderKind.Locked)
+            .Select(entry => entry.Path)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private async Task<ProtectionStartResult> LockFoldersForSessionAsync(Guid sessionId, IReadOnlyList<string> foldersToLock)
+    {
+        if (foldersToLock.Count == 0)
+        {
+            return ProtectionStartResult.Ok(sessionId);
+        }
+
+        var folderLockResult = await _folderLock.LockFoldersAsync(sessionId, foldersToLock);
+        if (!folderLockResult.Success)
+        {
+            if (folderLockResult.LockedFolders.Count > 0)
+            {
+                await _folderLock.UnlockFoldersAsync(sessionId, foldersToLock);
+            }
+
+            return ProtectionStartResult.Failed(
+                "잠금 폴더 보호에 실패했습니다.\n"
+                + string.Join(Environment.NewLine, folderLockResult.Errors));
+        }
+
+        await RecordSystemEventAsync(sessionId, "잠금 폴더 접근 차단 시작");
+        return ProtectionStartResult.Ok(sessionId);
+    }
+
+    private static string BuildFolderSnapshot(
+        IReadOnlyList<string> recordFolders,
+        IReadOnlyList<string> lockedFolders)
+    {
+        var entries = recordFolders
+            .Select(path => new FolderSnapshotEntry(Path.GetFullPath(path), MonitoredFolderKind.RecordOnly))
+            .Concat(lockedFolders.Select(path => new FolderSnapshotEntry(Path.GetFullPath(path), MonitoredFolderKind.Locked)))
+            .GroupBy(entry => entry.Path, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.Any(entry => entry.Kind == MonitoredFolderKind.Locked)
+                ? group.First(entry => entry.Kind == MonitoredFolderKind.Locked)
+                : group.First())
+            .ToArray();
+
+        return JsonSerializer.Serialize(entries, JsonOptions);
+    }
+
+    private static IReadOnlyList<FolderSnapshotEntry> ParseFolderSnapshotEntries(string? folderSnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(folderSnapshotJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            var entries = JsonSerializer.Deserialize<FolderSnapshotEntry[]>(folderSnapshotJson, JsonOptions);
+            if (entries is not null)
+            {
+                return entries;
+            }
+        }
+        catch (JsonException)
+        {
+            try
+            {
+                var legacyPaths = JsonSerializer.Deserialize<string[]>(folderSnapshotJson, JsonOptions) ?? [];
+                return legacyPaths
+                    .Select(path => new FolderSnapshotEntry(path, MonitoredFolderKind.Locked))
+                    .ToArray();
+            }
+            catch (JsonException)
+            {
+                return [];
+            }
+        }
+
+        return [];
+    }
+
+    private static IEnumerable<string> NormalizeFolders(IEnumerable<string> folders)
+    {
+        return folders
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
     private Task RecordSystemEventAsync(Guid sessionId, string description)
     {
         return _database.AddFileEventAsync(new FileEventRecord(
@@ -149,4 +287,6 @@ public sealed class ProtectionCoordinator
             description,
             null));
     }
+
+    private sealed record FolderSnapshotEntry(string Path, MonitoredFolderKind Kind);
 }
