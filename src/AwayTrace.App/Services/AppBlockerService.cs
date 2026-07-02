@@ -10,10 +10,13 @@ public sealed class AppBlockerService : IDisposable
     private const int SwHide = 0;
     private const int SwShow = 5;
     private static readonly TimeSpan LogDebounce = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan AppListCacheDuration = TimeSpan.FromSeconds(5);
 
     private readonly AwayTraceDatabase _database;
     private readonly Dictionary<string, DateTimeOffset> _lastLogged = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<IntPtr> _hiddenWindows = [];
+    // 숨긴 창 핸들과 그 창의 소유 프로세스 ID.
+    // 핸들은 Windows가 재사용할 수 있으므로 복원 시 PID가 일치하는지 확인한다.
+    private readonly Dictionary<IntPtr, int> _hiddenWindows = [];
     private readonly object _sync = new();
     private System.Threading.Timer? _timer;
     private volatile bool _isActive;
@@ -21,6 +24,10 @@ public sealed class AppBlockerService : IDisposable
     private ProtectedAppProtectionMode _mode = ProtectedAppProtectionMode.HideWindows;
     private int _scanState;
     private bool _disposed;
+    // 보호 앱 목록 캐시. 고속 100ms 모드에서 매 스캔마다 DB를 열지 않도록
+    // 5초 간격으로만 다시 읽는다.
+    private ProtectedApp[] _cachedApps = [];
+    private DateTimeOffset _appsCachedAt;
 
     public AppBlockerService(AwayTraceDatabase database)
     {
@@ -33,6 +40,8 @@ public sealed class AppBlockerService : IDisposable
         Stop();
         _sessionId = sessionId;
         _mode = mode;
+        _cachedApps = [];
+        _appsCachedAt = default;
         _isActive = true;
         if (_mode != ProtectedAppProtectionMode.LeaveOpen)
         {
@@ -82,11 +91,16 @@ public sealed class AppBlockerService : IDisposable
 
         try
         {
-            var apps = (await _database.GetProtectedAppsAsync())
-                .Where(app => app.IsEnabled)
-                .ToArray();
+            var now = DateTimeOffset.Now;
+            if (now - _appsCachedAt >= AppListCacheDuration)
+            {
+                _cachedApps = (await _database.GetProtectedAppsAsync())
+                    .Where(app => app.IsEnabled)
+                    .ToArray();
+                _appsCachedAt = now;
+            }
 
-            foreach (var app in apps)
+            foreach (var app in _cachedApps)
             {
                 if (!_isActive)
                 {
@@ -109,6 +123,13 @@ public sealed class AppBlockerService : IDisposable
 
     private Task ApplyPolicyAsync(ProtectedApp app)
     {
+        // 예전 데이터나 다른 경로로 핵심 프로세스가 등록돼 있어도
+        // 여기서 최종 차단한다 (피커 필터의 백스톱).
+        if (CriticalProcessGuard.IsCritical(app.ProcessName))
+        {
+            return Task.CompletedTask;
+        }
+
         return _mode switch
         {
             ProtectedAppProtectionMode.HideWindows => HideAppWindowsAsync(app),
@@ -140,7 +161,7 @@ public sealed class AppBlockerService : IDisposable
                     {
                         lock (_sync)
                         {
-                            _hiddenWindows.Add(windowHandle);
+                            _hiddenWindows[windowHandle] = process.Id;
                         }
 
                         await LogProtectedAppEventAsync(
@@ -194,16 +215,24 @@ public sealed class AppBlockerService : IDisposable
 
     private void RestoreHiddenWindows()
     {
-        IntPtr[] handles;
+        KeyValuePair<IntPtr, int>[] entries;
         lock (_sync)
         {
-            handles = _hiddenWindows.ToArray();
+            entries = _hiddenWindows.ToArray();
             _hiddenWindows.Clear();
         }
 
-        foreach (var windowHandle in handles)
+        foreach (var (windowHandle, ownerProcessId) in entries)
         {
-            if (IsWindow(windowHandle))
+            if (!IsWindow(windowHandle))
+            {
+                continue;
+            }
+
+            // 핸들이 다른 창으로 재사용됐을 수 있으므로,
+            // 숨길 당시의 프로세스가 여전히 소유자인지 확인한 뒤 복원한다.
+            GetWindowThreadProcessId(windowHandle, out var currentProcessId);
+            if (currentProcessId == ownerProcessId)
             {
                 ShowWindow(windowHandle, SwShow);
             }

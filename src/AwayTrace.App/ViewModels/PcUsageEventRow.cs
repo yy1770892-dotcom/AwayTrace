@@ -14,9 +14,9 @@ public sealed class PcUsageEventRow
             PcUsageEventType.AppExited => "AwayTrace 종료 시간",
             PcUsageEventType.SessionLocked => "Windows 잠금 시간",
             PcUsageEventType.SessionUnlocked => "Windows 잠금 해제 시간",
-            PcUsageEventType.SystemStarted => "컴퓨터 켜진 시간",
-            PcUsageEventType.SystemShutdown => "컴퓨터 꺼진 시간",
-            PcUsageEventType.UnexpectedShutdown => "비정상 종료 시간",
+            PcUsageEventType.SystemStarted => "컴퓨터 켜짐 (추정)",
+            PcUsageEventType.SystemShutdown => "컴퓨터 꺼짐 (추정)",
+            PcUsageEventType.UnexpectedShutdown => "비정상 종료 기록",
             _ => "시스템 기록 시간"
         };
         DetailText = usageEvent.Description;

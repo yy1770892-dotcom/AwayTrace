@@ -48,6 +48,16 @@ public sealed class RelayCommand : ICommand
             RaiseCanExecuteChanged();
             await _execute(parameter);
         }
+        catch (Exception ex)
+        {
+            // async void에서 예외가 새어 나가면 앱 전체가 종료되므로
+            // 여기서 잡아 사용자 안내로 바꾼다.
+            System.Windows.MessageBox.Show(
+                $"작업 중 오류가 발생했습니다.\n{ex.Message}",
+                "AwayTrace",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+        }
         finally
         {
             _isExecuting = false;

@@ -36,6 +36,13 @@ public sealed class ProtectedAppPickerService : IProtectedAppPickerService
         try
         {
             var processName = process.ProcessName;
+            if (CriticalProcessGuard.IsCritical(processName))
+            {
+                // Windows 핵심 프로세스는 목록에 노출하지 않는다.
+                // 종료 모드로 등록되면 바탕화면이 사라지는 등 시스템이 망가질 수 있다.
+                return null;
+            }
+
             var title = process.MainWindowTitle;
             if (string.IsNullOrWhiteSpace(title) && !KnownBackgroundApps.Contains(processName))
             {

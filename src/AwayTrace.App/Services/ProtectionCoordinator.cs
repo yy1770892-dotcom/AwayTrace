@@ -148,6 +148,9 @@ public sealed class ProtectionCoordinator
         }
 
         _currentSessionId = session.Id;
+        // 재부팅 중에는 기록 공백이 있으므로 이 세션은 신뢰도 낮음으로 표시한다.
+        // (리포트에서 "기록 신뢰도 낮음"으로 보이게 되어 과장 없이 전달된다.)
+        await _database.MarkSessionLowConfidenceAsync(session.Id);
         await RecordSystemEventAsync(session.Id, "재부팅 후 보호 모드 자동 복구 - 재부팅 중 기록 공백이 있을 수 있습니다.");
         return ProtectionStartResult.Ok(session.Id);
     }

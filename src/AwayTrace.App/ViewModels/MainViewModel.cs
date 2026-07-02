@@ -227,6 +227,16 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _restoreProtectionAfterRestartEnabled, value))
             {
                 SaveBoolSettingAsync("options.restore_protection_after_restart", value);
+
+                // 재부팅 복구는 로그인 후 AwayTrace가 자동 실행돼야 동작하므로,
+                // 사용자가 이 옵션을 켜면 자동 실행도 함께 켜고 안내한다.
+                if (value && !_isLoadingOptions && !IsStartWithWindowsEnabled)
+                {
+                    IsStartWithWindowsEnabled = true;
+                    UserMessageRequested?.Invoke(
+                        this,
+                        "재부팅 후 보호 모드를 복구하려면 AwayTrace가 로그인 시 자동 실행되어야 합니다.\nWindows 자동 실행 옵션을 함께 켰습니다.");
+                }
             }
         }
     }
@@ -511,9 +521,17 @@ public sealed class MainViewModel : ObservableObject
 
     private async void OnProtectedAppEnabledChanged(object? sender, EventArgs e)
     {
-        if (sender is ProtectedAppItem item)
+        // async void 이벤트 핸들러: 예외가 새어 나가면 앱이 죽으므로 감싼다.
+        try
         {
-            await _database.UpdateProtectedAppEnabledAsync(item.Id, item.IsEnabled);
+            if (sender is ProtectedAppItem item)
+            {
+                await _database.UpdateProtectedAppEnabledAsync(item.Id, item.IsEnabled);
+            }
+        }
+        catch (Exception ex)
+        {
+            UserMessageRequested?.Invoke(this, $"보호 앱 설정을 저장하지 못했습니다.\n{ex.Message}");
         }
     }
 

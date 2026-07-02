@@ -138,8 +138,11 @@ public sealed class SqliteConnectionLite : IDisposable
             int typed => WinsqliteNative.sqlite3_bind_int64(statement, index, typed),
             long typed => WinsqliteNative.sqlite3_bind_int64(statement, index, typed),
             double typed => WinsqliteNative.sqlite3_bind_double(statement, index, typed),
-            DateTimeOffset typed => BindText(statement, index, typed.ToString("O")),
-            DateTime typed => BindText(statement, index, typed.ToString("O")),
+            // UTC로 통일해 저장한다. 로컬 오프셋(+09:00 등)을 섞어 저장하면
+            // SQLite의 문자열 비교/정렬(ORDER BY, >=)이 시간 순서와 어긋날 수 있다.
+            // 표시할 때는 각 화면에서 ToLocalTime()으로 변환한다.
+            DateTimeOffset typed => BindText(statement, index, typed.ToUniversalTime().ToString("O")),
+            DateTime typed => BindText(statement, index, typed.ToUniversalTime().ToString("O")),
             Guid typed => BindText(statement, index, typed.ToString()),
             Enum typed => BindText(statement, index, typed.ToString()),
             _ => BindText(statement, index, Convert.ToString(value) ?? string.Empty)

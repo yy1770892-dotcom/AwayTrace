@@ -303,14 +303,29 @@ public sealed class AwayTraceDatabase : ISettingsStore, ISessionRepository
         lock (_gate)
         {
             using var db = Open();
+            // low_confidence는 건드리지 않는다. 재부팅 복구 등으로 기록 공백이
+            // 표시된 세션이 정상 종료됐다고 해서 공백이 사라지는 것은 아니다.
             db.Execute(
                 """
                 UPDATE sessions
-                SET ended_at = ?, state = ?, low_confidence = 0
+                SET ended_at = ?, state = ?
                 WHERE id = ?;
                 """,
                 new SqliteParameter(endedAt),
                 new SqliteParameter(ProtectionSessionState.Completed),
+                new SqliteParameter(sessionId));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task MarkSessionLowConfidenceAsync(Guid sessionId)
+    {
+        lock (_gate)
+        {
+            using var db = Open();
+            db.Execute(
+                "UPDATE sessions SET low_confidence = 1 WHERE id = ?;",
                 new SqliteParameter(sessionId));
         }
 

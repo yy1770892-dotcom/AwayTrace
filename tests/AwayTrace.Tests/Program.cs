@@ -13,6 +13,8 @@ var tests = new (string Name, Func<Task> Body)[]
     ("AwayTraceDatabase stores PC usage events", PcUsageEventsPersistInDatabase),
     ("AwayTraceDatabase keeps protected apps after reopening", ProtectedAppsPersistAfterReopeningDatabase),
     ("AwayTraceDatabase stores monitored folders by kind", MonitoredFoldersPersistWithKinds),
+    ("AwayTraceDatabase preserves low confidence after ending a session", EndSessionPreservesLowConfidence),
+    ("AwayTraceDatabase orders timestamps correctly across UTC offsets", TimestampOrderingIsCorrectAcrossOffsets),
     ("SessionRecoveryService marks active sessions as abnormal", SessionRecoveryMarksActiveSessionsAbnormal),
     ("SessionRecoveryService leaves empty repositories unchanged", SessionRecoveryDoesNothingWithoutActiveSessions)
 };
@@ -178,6 +180,78 @@ static async Task MonitoredFoldersPersistWithKinds()
         Assert.Equal(2, folders.Count);
         Assert.Equal(MonitoredFolderKind.Locked, folders.Single(folder => folder.Path == recordPath).Kind);
         Assert.Equal(MonitoredFolderKind.Locked, folders.Single(folder => folder.Path == lockPath).Kind);
+    }
+    finally
+    {
+        TryDelete(dbPath);
+        TryDelete(dbPath + "-wal");
+        TryDelete(dbPath + "-shm");
+    }
+}
+
+static async Task EndSessionPreservesLowConfidence()
+{
+    var dbPath = Path.Combine(Path.GetTempPath(), $"awaytrace-test-{Guid.NewGuid():N}.db");
+    try
+    {
+        var db = new AwayTraceDatabase(dbPath);
+        db.Initialize();
+
+        var sessionId = Guid.NewGuid();
+        await db.CreateSessionAsync(new WatchSession(
+            sessionId,
+            DateTimeOffset.Parse("2026-07-02T09:00:00+09:00"),
+            null,
+            ProtectionSessionState.Active,
+            false,
+            "[]",
+            null));
+
+        // 재부팅 복구 시나리오: 기록 공백으로 신뢰도 낮음 표시 후 정상 종료.
+        await db.MarkSessionLowConfidenceAsync(sessionId);
+        await db.EndSessionAsync(sessionId, DateTimeOffset.Parse("2026-07-02T10:00:00+09:00"));
+
+        var session = await db.GetSessionAsync(sessionId);
+        Assert.True(session is not null, "Session must exist after ending.");
+        Assert.True(session!.LowConfidence, "low_confidence must survive EndSessionAsync.");
+        Assert.Equal(ProtectionSessionState.Completed, session.State);
+    }
+    finally
+    {
+        TryDelete(dbPath);
+        TryDelete(dbPath + "-wal");
+        TryDelete(dbPath + "-shm");
+    }
+}
+
+static async Task TimestampOrderingIsCorrectAcrossOffsets()
+{
+    var dbPath = Path.Combine(Path.GetTempPath(), $"awaytrace-test-{Guid.NewGuid():N}.db");
+    try
+    {
+        var db = new AwayTraceDatabase(dbPath);
+        db.Initialize();
+
+        // 실제 시각: A = 01:00Z, B = 02:00Z (B가 더 나중).
+        // 오프셋을 섞어 저장해도 UTC로 정규화되어 B가 먼저(내림차순) 나와야 한다.
+        await db.AddPcUsageEventAsync(new PcUsageEvent(
+            0,
+            DateTimeOffset.Parse("2026-07-02T10:00:00+09:00"),
+            PcUsageEventType.AppStarted,
+            "A",
+            "AwayTrace"));
+        await db.AddPcUsageEventAsync(new PcUsageEvent(
+            0,
+            DateTimeOffset.Parse("2026-07-02T02:00:00+00:00"),
+            PcUsageEventType.AppExited,
+            "B",
+            "AwayTrace"));
+
+        var events = await db.GetPcUsageEventsAsync(DateTimeOffset.Parse("2026-07-01T00:00:00+00:00"), 10);
+
+        Assert.Equal(2, events.Count);
+        Assert.Equal("B", events[0].Description);
+        Assert.Equal("A", events[1].Description);
     }
     finally
     {

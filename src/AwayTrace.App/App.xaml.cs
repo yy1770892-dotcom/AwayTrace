@@ -68,13 +68,15 @@ public partial class App : System.Windows.Application
             _startupRegistration = new StartupRegistrationService();
             try
             {
-                await EnableStartupOnceAfterUserApprovalAsync(_database, _startupRegistration);
+                // 자동 실행은 사용자가 옵션 탭에서 직접 켤 때만 등록한다.
+                // (예전에는 최초 실행 시 동의 없이 등록했는데, 이는 원칙에 어긋나 제거함.)
+                // 이미 켜져 있다면 exe 경로가 바뀌었을 수 있으므로 갱신만 한다.
                 _startupRegistration.RefreshIfEnabled();
             }
             catch (Exception startupEx)
             {
                 MessageBox.Show(
-                    $"Windows 자동 실행을 등록하지 못했습니다. 앱은 계속 실행됩니다.\n{startupEx.Message}",
+                    $"Windows 자동 실행 정보를 갱신하지 못했습니다. 앱은 계속 실행됩니다.\n{startupEx.Message}",
                     "AwayTrace",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -118,8 +120,8 @@ public partial class App : System.Windows.Application
             {
                 await PromptAndStopProtectionAsync(openReport: true, shutdownAfter: false);
             });
-            _mainViewModel.OpenLatestReportRequested += async (_, _) => await ShowLatestReportAsync();
-            _mainViewModel.OpenPcUsageLogRequested += async (_, _) => await ShowPcUsageLogAsync();
+            _mainViewModel.OpenLatestReportRequested += (_, _) => _ = RunSafelyAsync(ShowLatestReportAsync);
+            _mainViewModel.OpenPcUsageLogRequested += (_, _) => _ = RunSafelyAsync(ShowPcUsageLogAsync);
             _mainViewModel.PinChangeRequested += (_, _) => ShowPinChangeWindow();
             _mainViewModel.HotkeyOptionsChanged += (_, _) => ConfigureHotkey();
             await _mainViewModel.LoadAsync();
@@ -250,21 +252,27 @@ public partial class App : System.Windows.Application
 
     private void InvokeOnUiAsync(Func<Task> action)
     {
-        _ = Dispatcher.InvokeAsync(() => _ = action());
+        _ = Dispatcher.InvokeAsync(() => _ = RunSafelyAsync(action));
     }
 
-    private static async Task EnableStartupOnceAfterUserApprovalAsync(
-        AwayTraceDatabase database,
-        StartupRegistrationService startupRegistration)
+    /// <summary>
+    /// async void 이벤트 핸들러에서 예외가 새어 나가면 앱 전체가 종료되므로,
+    /// 비동기 작업은 이 헬퍼를 거쳐 예외를 사용자 안내로 바꾼다.
+    /// </summary>
+    private async Task RunSafelyAsync(Func<Task> action)
     {
-        const string key = "startup.auto_start_default_applied";
-        if (await database.GetSettingAsync(key) == "1")
+        try
         {
-            return;
+            await action();
         }
-
-        startupRegistration.Enable();
-        await database.SetSettingAsync(key, "1");
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"작업 중 오류가 발생했습니다.\n{ex.Message}",
+                "AwayTrace",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private static async Task<StartupProtectionState> HandleStartupProtectionStateAsync(
@@ -531,28 +539,36 @@ public partial class App : System.Windows.Application
 
     private async void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
     {
-        if (_protection is null)
+        // async void 이벤트 핸들러: 예외가 새어 나가면 앱이 통째로 죽으므로
+        // 전체를 try/catch로 감싼다 (DB 기록 실패는 조용히 넘어간다).
+        try
         {
-            return;
-        }
-
-        if (e.Reason == SessionSwitchReason.SessionLock)
-        {
-            if (_pcUsageLog is not null)
+            if (_protection is null)
             {
-                await _pcUsageLog.RecordAsync(PcUsageEventType.SessionLocked, "Windows 세션 잠금");
+                return;
             }
 
-            await _protection.RecordWindowsSessionEventAsync("Windows 세션 잠금");
-        }
-        else if (e.Reason == SessionSwitchReason.SessionUnlock)
-        {
-            if (_pcUsageLog is not null)
+            if (e.Reason == SessionSwitchReason.SessionLock)
             {
-                await _pcUsageLog.RecordAsync(PcUsageEventType.SessionUnlocked, "Windows 세션 잠금 해제");
-            }
+                if (_pcUsageLog is not null)
+                {
+                    await _pcUsageLog.RecordAsync(PcUsageEventType.SessionLocked, "Windows 세션 잠금");
+                }
 
-            await _protection.RecordWindowsSessionEventAsync("Windows 세션 잠금 해제");
+                await _protection.RecordWindowsSessionEventAsync("Windows 세션 잠금");
+            }
+            else if (e.Reason == SessionSwitchReason.SessionUnlock)
+            {
+                if (_pcUsageLog is not null)
+                {
+                    await _pcUsageLog.RecordAsync(PcUsageEventType.SessionUnlocked, "Windows 세션 잠금 해제");
+                }
+
+                await _protection.RecordWindowsSessionEventAsync("Windows 세션 잠금 해제");
+            }
+        }
+        catch
+        {
         }
     }
 

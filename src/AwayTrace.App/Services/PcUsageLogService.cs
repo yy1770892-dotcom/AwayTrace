@@ -27,7 +27,7 @@ public sealed class PcUsageLogService
     public async Task<IReadOnlyList<PcUsageEvent>> GetRecentEventsAsync(DateTimeOffset from)
     {
         var localEvents = await _database.GetPcUsageEventsAsync(from, 200);
-        var windowsEvents = await Task.Run(() => ReadWindowsSystemEvents(from));
+        var windowsEvents = await ReadWindowsSystemEventsAsync(from);
 
         return localEvents
             .Concat(windowsEvents)
@@ -36,7 +36,7 @@ public sealed class PcUsageLogService
             .ToArray();
     }
 
-    private static IReadOnlyList<PcUsageEvent> ReadWindowsSystemEvents(DateTimeOffset from)
+    private static async Task<IReadOnlyList<PcUsageEvent>> ReadWindowsSystemEventsAsync(DateTimeOffset from)
     {
         try
         {
@@ -62,8 +62,31 @@ public sealed class PcUsageLogService
                 return [];
             }
 
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(4000);
+            // stdout/stderr를 모두 비동기로 읽는다. stderr를 읽지 않으면
+            // 버퍼가 가득 찼을 때 wevtutil이 멈추고 ReadToEnd가 영원히
+            // 블록될 수 있다. 전체 작업에 5초 타임아웃을 건다.
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                }
+
+                return [];
+            }
+
+            var output = await outputTask;
+            await errorTask;
             if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
             {
                 return [];
@@ -104,8 +127,8 @@ public sealed class PcUsageLogService
 
         var (type, description) = id switch
         {
-            6005 => (PcUsageEventType.SystemStarted, "컴퓨터 켜진 시간으로 추정"),
-            6006 => (PcUsageEventType.SystemShutdown, "컴퓨터 꺼진 시간으로 추정"),
+            6005 => (PcUsageEventType.SystemStarted, "이벤트 로그 서비스 시작 기준 추정. 절전 복귀는 포함되지 않을 수 있음"),
+            6006 => (PcUsageEventType.SystemShutdown, "이벤트 로그 서비스 중지 기준 추정. 절전 진입은 포함되지 않을 수 있음"),
             6008 => (PcUsageEventType.UnexpectedShutdown, "컴퓨터가 정상 종료되지 않은 기록"),
             _ => (PcUsageEventType.Unknown, "Windows 시스템 기록")
         };
