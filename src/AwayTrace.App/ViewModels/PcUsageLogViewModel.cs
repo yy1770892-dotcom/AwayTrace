@@ -64,10 +64,13 @@ public sealed class PcUsageLogViewModel : ObservableObject
     {
         if (!PcUsageSchedule.TryCreate(StandardStartText, StandardEndText, out _))
         {
-            StatusText = "시간은 09:00 형식으로 입력해 주세요.";
+            StatusText = "시간을 확인해 주세요. 예: 0900 또는 09:00";
             return;
         }
 
+        // 숫자만 입력했어도 "09:00" 형태로 정리해 저장·표시한다.
+        StandardStartText = PcUsageSchedule.Normalize(StandardStartText);
+        StandardEndText = PcUsageSchedule.Normalize(StandardEndText);
         await _database.SetSettingAsync("pc_usage.standard_start", StandardStartText);
         await _database.SetSettingAsync("pc_usage.standard_end", StandardEndText);
         await LoadEventsAsync();

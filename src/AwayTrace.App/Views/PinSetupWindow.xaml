@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AwayTrace PIN 설정"
         Width="500"
-        Height="380"
+        Height="420"
         ResizeMode="NoResize"
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -23,13 +24,13 @@
                    TextWrapping="Wrap"
                    Text="이 PIN은 Windows 로그인 비밀번호와 같거나 연동되지 않습니다. AwayTrace는 로컬 보호 목적의 앱이라 PIN 복구용 이메일이나 서버를 사용하지 않습니다. PIN을 잊으면 앱 데이터를 삭제하고 다시 설정해야 합니다." />
 
-        <TextBlock Grid.Row="2" Text="PIN" Margin="0,0,0,6" />
+        <TextBlock Grid.Row="2" Text="PIN (숫자 6자리 이상)" Margin="0,0,0,6" />
         <PasswordBox Grid.Row="3" x:Name="PinBox" MaxLength="32" />
 
         <StackPanel Grid.Row="4" Margin="0,14,0,0">
             <TextBlock Text="PIN 확인" Margin="0,0,0,6" />
             <PasswordBox x:Name="ConfirmPinBox" MaxLength="32" />
-            <TextBlock x:Name="MessageText" Margin="0,10,0,0" Foreground="#FF9B9B" TextWrapping="Wrap" />
+            <TextBlock x:Name="MessageText" Margin="0,10,0,0" Foreground="{StaticResource DangerBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
         </StackPanel>
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">

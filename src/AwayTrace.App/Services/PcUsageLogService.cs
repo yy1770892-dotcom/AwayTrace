@@ -102,13 +102,33 @@ public sealed class PcUsageLogService
 
     private static IReadOnlyList<PcUsageEvent> ParseWindowsEvents(string xml, DateTimeOffset from)
     {
-        var document = XDocument.Parse(xml);
-        XNamespace ns = "http://schemas.microsoft.com/win/2004/08/events/event";
-        IEnumerable<XElement> events = document.Root?.Name == ns + "Event"
-            ? new[] { document.Root }
-            : document.Descendants(ns + "Event");
+        // wevtutil /f:xml 는 <Event>...</Event> 조각들을 바깥 루트 없이 이어붙여 출력한다.
+        // 이벤트가 2개 이상이면 루트가 여러 개라 XDocument.Parse가 실패하므로
+        // <Events>로 감싸 단일 루트로 만든 뒤 파싱한다. (앞쪽 BOM/공백도 제거)
+        var trimmed = xml.Trim();
+        var firstTag = trimmed.IndexOf('<');
+        if (firstTag < 0)
+        {
+            return [];
+        }
 
-        return events
+        if (firstTag > 0)
+        {
+            trimmed = trimmed[firstTag..];
+        }
+
+        XDocument document;
+        try
+        {
+            document = XDocument.Parse("<Events>" + trimmed + "</Events>");
+        }
+        catch (System.Xml.XmlException)
+        {
+            return [];
+        }
+
+        XNamespace ns = "http://schemas.microsoft.com/win/2004/08/events/event";
+        return document.Descendants(ns + "Event")
             .Select(element => TryReadWindowsEvent(element, ns))
             .Where(item => item is not null && item.Timestamp >= from)
             .Select(item => item!)

@@ -104,6 +104,8 @@ public partial class App : System.Windows.Application
                 _protection,
                 _startupRegistration);
             _mainViewModel.UserMessageRequested += (_, message) => MessageBox.Show(message, "AwayTrace", MessageBoxButton.OK, MessageBoxImage.Information);
+            _mainViewModel.ConfirmationRequested = message =>
+                MessageBox.Show(message, "AwayTrace", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
             _mainViewModel.HideWindowRequested += (_, _) => HideMainWindow();
             _mainViewModel.ProtectionStarted += (_, _) =>
             {

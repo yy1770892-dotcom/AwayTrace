@@ -21,12 +21,11 @@
                 <TextBlock Text="{Binding PeriodText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
             </StackPanel>
             <Border DockPanel.Dock="Right"
-                    Background="{StaticResource PanelBackground}"
-                    BorderBrush="{StaticResource BorderBrushMuted}"
-                    BorderThickness="1"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource AccentSoftBrush}"
                     Padding="14,8"
-                    CornerRadius="6">
-                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                    CornerRadius="9">
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentDarkBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
             </Border>
         </DockPanel>
 
@@ -40,9 +39,13 @@
                         Visibility="{Binding CanStopProtection, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <Button Content="기록 내보내기 (엑셀용 CSV)" Command="{Binding ExportCsvCommand}" />
             </StackPanel>
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                 <TextBlock Text="필터" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" />
-                <ComboBox Width="160" ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}" />
+                <ComboBox Width="120"
+                          HorizontalContentAlignment="Center"
+                          VerticalContentAlignment="Center"
+                          ItemsSource="{Binding FilterOptions}"
+                          SelectedItem="{Binding SelectedFilter}" />
             </StackPanel>
         </DockPanel>
 

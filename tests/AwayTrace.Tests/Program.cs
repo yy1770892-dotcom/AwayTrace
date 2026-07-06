@@ -10,6 +10,7 @@ var tests = new (string Name, Func<Task> Body)[]
     ("ProtectedAppScanSpeed keeps normal and fast polling intervals", ProtectedAppScanSpeedKeepsPollingIntervals),
     ("PcUsageSchedule detects outside standard hours", PcUsageScheduleDetectsOutsideStandardHours),
     ("PcUsageSchedule supports overnight standard hours", PcUsageScheduleSupportsOvernightHours),
+    ("PcUsageSchedule parses digit-only time input", PcUsageScheduleParsesDigitOnlyTime),
     ("AwayTraceDatabase stores PC usage events", PcUsageEventsPersistInDatabase),
     ("AwayTraceDatabase keeps protected apps after reopening", ProtectedAppsPersistAfterReopeningDatabase),
     ("AwayTraceDatabase stores monitored folders by kind", MonitoredFoldersPersistWithKinds),
@@ -99,6 +100,21 @@ static Task PcUsageScheduleSupportsOvernightHours()
     Assert.False(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T23:00:00+09:00")));
     Assert.False(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T05:30:00+09:00")));
     Assert.True(schedule.IsOutside(DateTimeOffset.Parse("2026-07-02T12:00:00+09:00")));
+    return Task.CompletedTask;
+}
+
+static Task PcUsageScheduleParsesDigitOnlyTime()
+{
+    // 콜론 없이 숫자만 입력해도 시각으로 해석되어야 한다.
+    Assert.True(PcUsageSchedule.TryParseTime("0900", out var t1));
+    Assert.Equal(new TimeOnly(9, 0), t1);
+    Assert.True(PcUsageSchedule.TryParseTime("900", out var t2));
+    Assert.Equal(new TimeOnly(9, 0), t2);
+    Assert.True(PcUsageSchedule.TryParseTime("18", out var t3));
+    Assert.Equal(new TimeOnly(18, 0), t3);
+    Assert.True(PcUsageSchedule.TryParseTime("09:30", out var t4));
+    Assert.Equal(new TimeOnly(9, 30), t4);
+    Assert.Equal("09:00", PcUsageSchedule.Normalize("900"));
     return Task.CompletedTask;
 }
 

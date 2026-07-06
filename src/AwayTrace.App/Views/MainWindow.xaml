@@ -4,8 +4,7 @@
         Title="AwayTrace"
         Width="1020"
         Height="760"
-        MinWidth="920"
-        MinHeight="680"
+        ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         Closing="OnClosing">
     <Grid Margin="24">
@@ -23,14 +22,13 @@
                            Margin="0,4,0,0" />
             </StackPanel>
             <Border DockPanel.Dock="Right"
-                    Background="{StaticResource PanelBackground}"
-                    BorderBrush="{StaticResource BorderBrushMuted}"
-                    BorderThickness="1"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource AccentSoftBrush}"
                     Padding="14,8"
-                    CornerRadius="6">
+                    CornerRadius="9">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="상태" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="상태" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentDarkBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
             </Border>
         </DockPanel>
@@ -50,11 +48,10 @@
                             BorderThickness="1"
                             Padding="16"
                             CornerRadius="6">
-                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
-                            <Run Text="AwayTrace는 지정 폴더의 파일 변경 정황을 로컬에 기록합니다. " />
-                            <Run Text="기록 폴더는 변경 기록만 남기고, 잠금 폴더는 보호 중 Windows 권한으로 접근을 차단합니다. " />
-                            <Run Text="파일 내용, 키 입력, 화면, 메신저 대화 내용은 기록하지 않습니다." />
-                        </TextBlock>
+                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   LineHeight="22"
+                                   Text="AwayTrace는 지정 폴더의 파일 변경 정황을 로컬에 기록합니다. 파일 내용, 키 입력, 화면, 메신저 대화 내용은 기록하지 않습니다." />
                     </Border>
 
                     <Grid Grid.Row="1" Margin="0,18,0,0">
@@ -71,11 +68,19 @@
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="기록 폴더" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                                <Path Data="M2,5 L8,5 L10,7 L19,7 L19,16 L2,16 Z"
+                                      Fill="{StaticResource TextSecondaryBrush}"
+                                      Width="21" Height="18" Stretch="Uniform"
+                                      VerticalAlignment="Center" Margin="0,2,8,0" />
+                                <TextBlock Text="기록 폴더" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
                             <TextBlock Grid.Row="1"
                                        Text="파일 생성, 수정, 삭제, 이름 변경 정황만 기록합니다."
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        TextWrapping="Wrap"
+                                       VerticalAlignment="Top"
+                                       MinHeight="44"
                                        Margin="0,0,0,10" />
                             <ListBox Grid.Row="2"
                                      ItemsSource="{Binding RecordFolders}"
@@ -95,12 +100,19 @@
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="잠금 폴더" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                                <Path Data="M4,10 L16,10 L16,19 L4,19 Z M7,10 L7,7.5 A3,3 0 0 1 13,7.5 L13,10 L11,10 L11,7.5 A1,1 0 0 0 9,7.5 L9,10 Z"
+                                      Fill="{StaticResource AccentBrush}"
+                                      Width="19" Height="18" Stretch="Uniform"
+                                      VerticalAlignment="Center" Margin="0,2,8,0" />
+                                <TextBlock Text="잠금 폴더" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
                             <TextBlock Grid.Row="1"
-                                       Text="보호 중 Windows 권한으로 접근을 차단합니다. 접근 실패 시도 자체는 이 버전에서 기록하지 않습니다."
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        TextWrapping="Wrap"
-                                       Margin="0,0,0,10" />
+                                       VerticalAlignment="Top"
+                                       MinHeight="44"
+                                       Margin="0,0,0,10"><Run Text="보호 중 Windows 권한으로 접근을 차단합니다." /><LineBreak /><Run Text="접근을 하더라도 기록되지 않습니다." /></TextBlock>
                             <ListBox Grid.Row="2"
                                      ItemsSource="{Binding LockedFolders}"
                                      SelectedItem="{Binding SelectedLockedFolder}"
@@ -123,7 +135,9 @@
                             CornerRadius="6">
                         <DockPanel LastChildFill="False">
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                                <Button Content="{Binding ProtectionButtonText}" Command="{Binding StartProtectionCommand}" />
+                                <Button Content="{Binding ProtectionButtonText}"
+                                        Command="{Binding StartProtectionCommand}"
+                                        Style="{StaticResource PrimaryButton}" />
                                 <!-- 잠금 여부는 보호 시작과 함께 결정하는 것이라 버튼 옆에 배치 -->
                                 <CheckBox Content="보호 시작 때 Windows 잠금"
                                           IsChecked="{Binding LockWorkstationOnProtectionStart, Mode=TwoWay}"

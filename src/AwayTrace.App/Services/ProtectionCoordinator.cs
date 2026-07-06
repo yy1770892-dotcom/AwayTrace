@@ -54,10 +54,8 @@ public sealed class ProtectionCoordinator
 
         var allFolders = NormalizeFolders(recordFolders.Concat(lockedFolders)).ToArray();
         var foldersToLock = NormalizeFolders(lockedFolders).ToArray();
-        if (allFolders.Length == 0)
-        {
-            return ProtectionStartResult.Failed("기록 폴더 또는 잠금 폴더를 하나 이상 추가해 주세요.");
-        }
+        // 폴더가 없어도 보호 시작을 허용한다(메신저 가림만 쓰거나 시작/종료 기록만
+        // 원하는 사용자). 폴더 없음 확인은 UI(ViewModel)에서 처리한다.
 
         var sessionId = Guid.NewGuid();
         var session = new WatchSession(

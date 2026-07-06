@@ -356,6 +356,9 @@ public sealed class MainViewModel : ObservableObject
 
     public event EventHandler<string>? UserMessageRequested;
 
+    /// <summary>예/아니오 확인이 필요할 때 UI가 대화상자를 띄우도록 위임한다. (true=예)</summary>
+    public Func<string, bool>? ConfirmationRequested { get; set; }
+
     public async Task LoadAsync()
     {
         RecordFolders.Clear();
@@ -433,6 +436,22 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task StartProtectionAsync()
     {
+        // 폴더 없이도 시작할 수 있지만, 실수 방지를 위해 한 번만 확인한다.
+        // (폴더를 등록한 사용자는 이 확인을 보지 않는다.)
+        if (RecordFolders.Count == 0 && LockedFolders.Count == 0)
+        {
+            var hasMessengerProtection = BlockProtectedAppsEnabled
+                && SelectedProtectedAppProtectionMode.Mode != ProtectedAppProtectionMode.LeaveOpen
+                && ProtectedApps.Any(app => app.IsEnabled);
+            var message = hasMessengerProtection
+                ? "현재 보호할 기록 폴더·잠금 폴더가 없습니다.\n메신저 가림만 진행할까요?"
+                : "현재 보호할 기록 폴더·잠금 폴더가 없습니다.\n보호 시작/종료 기록만 남습니다. 그래도 시작할까요?";
+            if (ConfirmationRequested is null || !ConfirmationRequested(message))
+            {
+                return;
+            }
+        }
+
         var result = await _protection.StartProtectionAsync(
             RecordFolders.Select(folder => folder.Path).ToArray(),
             LockedFolders.Select(folder => folder.Path).ToArray(),

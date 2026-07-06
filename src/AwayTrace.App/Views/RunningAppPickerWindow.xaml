@@ -32,8 +32,8 @@
         </ListView>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="취소" Click="OnCancelClick" Background="#2A343D" Foreground="{StaticResource TextPrimaryBrush}" />
-            <Button Content="추가" Click="OnAddClick" />
+            <Button Content="취소" Click="OnCancelClick" />
+            <Button Content="추가" Click="OnAddClick" Style="{StaticResource PrimaryButton}" />
         </StackPanel>
     </Grid>
 </Window>
