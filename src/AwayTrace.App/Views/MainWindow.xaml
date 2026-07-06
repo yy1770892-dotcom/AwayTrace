@@ -113,24 +113,33 @@
                         </Grid>
                     </Grid>
 
-                    <DockPanel Grid.Row="2" Margin="0,20,0,0" LastChildFill="False">
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                            <Button Content="{Binding ProtectionButtonText}" Command="{Binding StartProtectionCommand}" />
-                            <!-- 잠금 여부는 보호 시작과 함께 결정하는 것이라 버튼 옆에 배치 -->
-                            <CheckBox Content="보호 시작 때 Windows 잠금"
-                                      IsChecked="{Binding LockWorkstationOnProtectionStart, Mode=TwoWay}"
-                                      VerticalAlignment="Center"
-                                      Margin="10,0,10,0"
-                                      Foreground="{StaticResource TextPrimaryBrush}" />
-                            <Button Content="창 숨기기" Command="{Binding HideWindowCommand}" />
-                            <Button Content="최근 리포트 보기" Command="{Binding RecentReportCommand}" />
-                            <Button Content="{Binding PcUsageLogButtonText}" Command="{Binding PcUsageLogCommand}" />
-                        </StackPanel>
-                        <TextBlock DockPanel.Dock="Right"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center"
-                                   Text="숨긴 창은 Ctrl+Alt+A 또는 AwayTrace 재실행으로 다시 열 수 있습니다." />
-                    </DockPanel>
+                    <!-- 하단 버튼 줄에 다크 배경을 깔아 밝은 글씨(체크박스 등)가 항상 보이도록 함 -->
+                    <Border Grid.Row="2"
+                            Margin="0,20,0,0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="14,12"
+                            CornerRadius="6">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                <Button Content="{Binding ProtectionButtonText}" Command="{Binding StartProtectionCommand}" />
+                                <!-- 잠금 여부는 보호 시작과 함께 결정하는 것이라 버튼 옆에 배치 -->
+                                <CheckBox Content="보호 시작 때 Windows 잠금"
+                                          IsChecked="{Binding LockWorkstationOnProtectionStart, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="10,0,10,0"
+                                          Foreground="{StaticResource TextPrimaryBrush}" />
+                                <Button Content="창 숨기기" Command="{Binding HideWindowCommand}" />
+                                <Button Content="최근 리포트 보기" Command="{Binding RecentReportCommand}" />
+                                <Button Content="{Binding PcUsageLogButtonText}" Command="{Binding PcUsageLogCommand}" />
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Right"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Text="숨긴 창은 Ctrl+Alt+A 또는 AwayTrace 재실행으로 다시 열 수 있습니다." />
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 
