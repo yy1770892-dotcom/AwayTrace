@@ -1,4 +1,12 @@
-# AwayTrace
+<p align="center">
+  <img src="src/AwayTrace.App/Assets/AwayTrace.png" width="128" alt="AwayTrace 로고" />
+</p>
+
+<h1 align="center">AwayTrace</h1>
+
+<p align="center"><b>자리비움·퇴근 후에도 보호 파일을 잠그고, 변경 정황을 로컬에만 기록하는 Windows 프라이버시 앱</b></p>
+
+---
 
 ### 자리비움부터 퇴근 후까지, 내 PC의 흔적을 내 PC 안에만 남깁니다.
 
