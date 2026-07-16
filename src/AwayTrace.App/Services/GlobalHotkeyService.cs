@@ -7,7 +7,7 @@ namespace AwayTrace.App.Services;
 
 public sealed class GlobalHotkeyService : IDisposable
 {
-    private const int HotkeyId = 0x4154;
+    private const int DefaultHotkeyId = 0x4154;
     private const int WmHotkey = 0x0312;
     private const uint ModAlt = 0x0001;
     private const uint ModControl = 0x0002;
@@ -19,6 +19,12 @@ public sealed class GlobalHotkeyService : IDisposable
     private IntPtr _handle;
     private Action? _callback;
     private bool _registered;
+    private readonly int _hotkeyId;
+
+    public GlobalHotkeyService(int hotkeyId = DefaultHotkeyId)
+    {
+        _hotkeyId = hotkeyId;
+    }
 
     public void Bind(Window window, Action callback)
     {
@@ -49,7 +55,7 @@ public sealed class GlobalHotkeyService : IDisposable
             return false;
         }
 
-        _registered = RegisterHotKey(_handle, HotkeyId, modifiers | ModNoRepeat, virtualKey);
+        _registered = RegisterHotKey(_handle, _hotkeyId, modifiers | ModNoRepeat, virtualKey);
         if (!_registered)
         {
             error = "이미 다른 프로그램이 같은 단축키를 사용 중일 수 있습니다.";
@@ -69,7 +75,7 @@ public sealed class GlobalHotkeyService : IDisposable
     {
         if (_registered && _handle != IntPtr.Zero)
         {
-            UnregisterHotKey(_handle, HotkeyId);
+            UnregisterHotKey(_handle, _hotkeyId);
         }
 
         _registered = false;
@@ -77,7 +83,7 @@ public sealed class GlobalHotkeyService : IDisposable
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WmHotkey && wParam.ToInt32() == HotkeyId)
+        if (msg == WmHotkey && wParam.ToInt32() == _hotkeyId)
         {
             handled = true;
             _callback?.Invoke();

@@ -2,6 +2,10 @@
 
 AwayTrace is a local-first personal privacy protection app for Windows. It is designed to help a user protect their own PC while away, not to monitor or identify other people.
 
+## Responsible Use
+
+AwayTrace is a Windows 10/11 desktop program. Use it only on a PC that you own or are authorized to manage, and only for personal privacy protection. Installing it on someone else's PC without permission may create legal problems.
+
 ## Core Promise
 
 AwayTrace records local protection events and file-change context only. It does not claim to prove who performed an action, whether a file was read, or whether a specific person accessed the PC.

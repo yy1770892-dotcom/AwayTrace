@@ -53,6 +53,11 @@ public sealed class TrayIconService : IDisposable
         _stopProtectionItem.Enabled = isActive;
     }
 
+    public void SetVisible(bool visible)
+    {
+        _notifyIcon.Visible = visible;
+    }
+
     public void ShowInfo(string title, string message)
     {
         _notifyIcon.Visible = true;

@@ -29,9 +29,12 @@ public partial class App : System.Windows.Application
     private ProtectionCoordinator? _protection;
     private StartupRegistrationService? _startupRegistration;
     private GlobalHotkeyService? _hotkeyService;
+    private GlobalHotkeyService? _statusHideHotkeyService;
     private TrayIconService? _trayIcon;
     private MainViewModel? _mainViewModel;
     private MainWindow? _mainWindow;
+    private bool _isCompletelyHidden;
+    private readonly List<HiddenWindowState> _hiddenWindowStates = [];
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -133,6 +136,8 @@ public partial class App : System.Windows.Application
             ShutdownMode = ShutdownMode.OnMainWindowClose;
             _hotkeyService = new GlobalHotkeyService();
             _hotkeyService.Bind(_mainWindow, () => Dispatcher.Invoke(HandleHotkey));
+            _statusHideHotkeyService = new GlobalHotkeyService(0x4155);
+            _statusHideHotkeyService.Bind(_mainWindow, () => Dispatcher.Invoke(ToggleCompleteVisibility));
             ConfigureHotkey();
 
             _trayIcon.SetProtectionActive(_protection.IsProtectionActive);
@@ -170,6 +175,7 @@ public partial class App : System.Windows.Application
         _showWindowEvent?.Set();
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         _hotkeyService?.Dispose();
+        _statusHideHotkeyService?.Dispose();
         _trayIcon?.Dispose();
         _appBlocker?.Dispose();
         _fileMonitor?.Dispose();
@@ -233,6 +239,12 @@ public partial class App : System.Windows.Application
 
     private void ShowMainWindow()
     {
+        if (_isCompletelyHidden)
+        {
+            RestoreCompleteVisibility();
+            return;
+        }
+
         if (_mainWindow is null)
         {
             return;
@@ -250,6 +262,84 @@ public partial class App : System.Windows.Application
     {
         _mainWindow?.Hide();
         _trayIcon?.ShowInfo("AwayTrace 창 숨김", "Ctrl+Alt+A 또는 AwayTrace 재실행으로 다시 열 수 있습니다.");
+    }
+
+    private void ToggleCompleteVisibility()
+    {
+        if (_isCompletelyHidden)
+        {
+            RestoreCompleteVisibility();
+            return;
+        }
+
+        HideCompletely();
+    }
+
+    private void HideCompletely()
+    {
+        if (_mainViewModel is null)
+        {
+            return;
+        }
+
+        if (!_mainViewModel.StatusHideHotkeyNoticeSuppressed)
+        {
+            var result = MessageBox.Show(
+                $"{_mainViewModel.StatusHideHotkeyText}로 다시 열 수 있습니다. 이 단축키를 꼭 기억하세요.\n\n다음부터 이 안내를 표시하지 않으려면 [예]를 누르세요.",
+                "AwayTrace 상태표시줄 숨기기",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+            if (result == MessageBoxResult.Yes)
+            {
+                _mainViewModel.StatusHideHotkeyNoticeSuppressed = true;
+            }
+        }
+
+        _hiddenWindowStates.Clear();
+        foreach (Window window in Windows)
+        {
+            if (!window.IsVisible)
+            {
+                continue;
+            }
+
+            _hiddenWindowStates.Add(new HiddenWindowState(window, window.ShowInTaskbar, window.WindowState));
+            window.ShowInTaskbar = false;
+            window.Hide();
+        }
+
+        _trayIcon?.SetVisible(false);
+        _isCompletelyHidden = true;
+    }
+
+    private void RestoreCompleteVisibility()
+    {
+        foreach (var state in _hiddenWindowStates.ToArray())
+        {
+            state.Window.ShowInTaskbar = state.ShowInTaskbar;
+            state.Window.Show();
+            state.Window.WindowState = state.WindowState == WindowState.Minimized
+                ? WindowState.Normal
+                : state.WindowState;
+        }
+
+        _hiddenWindowStates.Clear();
+        _trayIcon?.SetProtectionActive(_mainViewModel?.IsProtectionActive == true);
+        _isCompletelyHidden = false;
+
+        if (_mainWindow is not null)
+        {
+            if (!_mainWindow.IsVisible)
+            {
+                _mainWindow.ShowInTaskbar = true;
+                _mainWindow.Show();
+                _mainWindow.WindowState = WindowState.Normal;
+            }
+
+            _mainWindow.Activate();
+            _mainWindow.Topmost = true;
+            _mainWindow.Topmost = false;
+        }
     }
 
     private void InvokeOnUiAsync(Func<Task> action)
@@ -385,6 +475,13 @@ public partial class App : System.Windows.Application
             && !string.IsNullOrWhiteSpace(error))
         {
             MessageBox.Show(error, "AwayTrace 단축키", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        if (_statusHideHotkeyService is not null
+            && !_statusHideHotkeyService.Configure(_mainViewModel.StatusHideHotkeyEnabled, _mainViewModel.StatusHideHotkeyText, out var statusHideError)
+            && !string.IsNullOrWhiteSpace(statusHideError))
+        {
+            MessageBox.Show(statusHideError, "AwayTrace 상태표시줄 숨기기 단축키", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -599,4 +696,6 @@ public partial class App : System.Windows.Application
     }
 
     private sealed record StartupProtectionState(int RecoveredAbnormalSessions, bool RestoredProtection);
+
+    private sealed record HiddenWindowState(Window Window, bool ShowInTaskbar, WindowState WindowState);
 }

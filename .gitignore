@@ -11,6 +11,12 @@ TestResults/
 *.csv
 *.log
 publish/
+publish.7z
+*.7z
 artifacts/
 outputs/
 work/
+.agents/
+.codex/
+HANDOFF.md
+PLAN.md

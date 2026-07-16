@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AwayTrace"
         Width="1020"
-        Height="760"
+        Height="860"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         Closing="OnClosing">
@@ -148,10 +148,6 @@
                                 <Button Content="최근 리포트 보기" Command="{Binding RecentReportCommand}" />
                                 <Button Content="{Binding PcUsageLogButtonText}" Command="{Binding PcUsageLogCommand}" />
                             </StackPanel>
-                            <TextBlock DockPanel.Dock="Right"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center"
-                                       Text="숨긴 창은 Ctrl+Alt+A 또는 AwayTrace 재실행으로 다시 열 수 있습니다." />
                         </DockPanel>
                     </Border>
                 </Grid>
@@ -288,6 +284,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -368,11 +365,63 @@
                                        Margin="0,14,0,0"
                                        VerticalAlignment="Center"
                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
                                        Text="창이 보이면 보호 시작, 숨겨져 있거나 보호 중이면 다시 열기. 기본값: Ctrl+Alt+A" />
                         </Grid>
                     </Border>
 
                     <Border Grid.Row="2"
+                            Margin="0,16,0,0"
+                            Background="{StaticResource PanelBackground}"
+                            BorderBrush="{StaticResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            Padding="16"
+                            CornerRadius="6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Grid.ColumnSpan="4"
+                                       Text="상태표시줄 숨기기 단축키"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <CheckBox Grid.Row="1"
+                                      Grid.Column="0"
+                                      Content="사용"
+                                      IsChecked="{Binding StatusHideHotkeyEnabled, Mode=TwoWay}"
+                                      Margin="0,14,14,0"
+                                      VerticalAlignment="Center"
+                                      Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="1"
+                                     Text="{Binding StatusHideHotkeyText}"
+                                     Margin="0,14,10,0"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Row="1"
+                                    Grid.Column="2"
+                                    Content="기본값"
+                                    Command="{Binding ResetStatusHideHotkeyCommand}"
+                                    Margin="0,14,12,0" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="3"
+                                       Margin="0,14,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Text="창, 작업표시줄, 트레이 아이콘을 모두 숨기고 같은 단축키로 다시 엽니다. 기본값: Ctrl+Alt+H" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="3"
                             Margin="0,16,0,0"
                             Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrushMuted}"
@@ -401,6 +450,6 @@
                    Margin="0,16,0,0"
                    Foreground="{StaticResource TextSecondaryBrush}"
                    TextWrapping="Wrap"
-                   Text="AwayTrace는 개인용 로컬 보호 앱입니다. 행위자 식별, 메신저 내용 확인, 파일 열람 증명 기능은 제공하지 않습니다." />
+                   Text="AwayTrace는 개인용 로컬 보호 앱입니다. 행위자 식별, 메신저 내용 확인, 파일 열람 증명 기능은 제공하지 않습니다. 본인이 소유하거나 관리 권한을 가진 PC에서 개인 프라이버시 보호 목적으로만 사용하세요." />
     </Grid>
 </Window>

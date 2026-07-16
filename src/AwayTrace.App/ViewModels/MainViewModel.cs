@@ -57,12 +57,17 @@ public sealed class MainViewModel : ObservableObject
     private bool _blockProtectedAppsEnabled;
     private bool _lockWorkstationOnProtectionStart = true;
     private bool _hotkeyEnabled = true;
+    private bool _statusHideHotkeyEnabled = true;
+    private bool _statusHideHotkeyNoticeSuppressed;
     private bool _hasPcUsageWarning;
     private bool _isLoadingOptions;
     private string _hotkeyText = DefaultHotkeyText;
+    private string _statusHideHotkeyText = DefaultStatusHideHotkeyText;
     private string _protectedAppStatusMessage = "실행 중인 앱을 선택하면 이 목록에 저장됩니다.";
 
     public const string DefaultHotkeyText = "Ctrl+Alt+A";
+
+    public const string DefaultStatusHideHotkeyText = "Ctrl+Alt+H";
 
     public MainViewModel(
         AwayTraceDatabase database,
@@ -91,6 +96,7 @@ public sealed class MainViewModel : ObservableObject
         AddRunningAppCommand = new RelayCommand(AddRunningAppAsync);
         ChangePinCommand = new RelayCommand(() => PinChangeRequested?.Invoke(this, EventArgs.Empty));
         ResetHotkeyCommand = new RelayCommand(() => HotkeyText = DefaultHotkeyText);
+        ResetStatusHideHotkeyCommand = new RelayCommand(() => StatusHideHotkeyText = DefaultStatusHideHotkeyText);
     }
 
     public ObservableCollection<MonitoredFolder> RecordFolders { get; } = [];
@@ -291,6 +297,44 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public bool StatusHideHotkeyEnabled
+    {
+        get => _statusHideHotkeyEnabled;
+        set
+        {
+            if (SetProperty(ref _statusHideHotkeyEnabled, value))
+            {
+                SaveBoolSettingAsync("options.status_hide_hotkey_enabled", value);
+                HotkeyOptionsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public string StatusHideHotkeyText
+    {
+        get => _statusHideHotkeyText;
+        set
+        {
+            if (SetProperty(ref _statusHideHotkeyText, value.Trim()))
+            {
+                SaveTextSettingAsync("options.status_hide_hotkey_text", _statusHideHotkeyText);
+                HotkeyOptionsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public bool StatusHideHotkeyNoticeSuppressed
+    {
+        get => _statusHideHotkeyNoticeSuppressed;
+        set
+        {
+            if (SetProperty(ref _statusHideHotkeyNoticeSuppressed, value))
+            {
+                SaveBoolSettingAsync("options.status_hide_hotkey_notice_suppressed", value);
+            }
+        }
+    }
+
     public string ProtectedAppStatusMessage
     {
         get => _protectedAppStatusMessage;
@@ -339,6 +383,8 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ChangePinCommand { get; }
 
     public ICommand ResetHotkeyCommand { get; }
+
+    public ICommand ResetStatusHideHotkeyCommand { get; }
 
     public event EventHandler? ProtectionStarted;
 
@@ -564,6 +610,9 @@ public sealed class MainViewModel : ObservableObject
             LockWorkstationOnProtectionStart = await GetBoolSettingAsync("options.lock_workstation_on_start", defaultValue: true);
             HotkeyEnabled = await GetBoolSettingAsync("options.hotkey_enabled", defaultValue: true);
             HotkeyText = await _database.GetSettingAsync("options.hotkey_text") ?? DefaultHotkeyText;
+            StatusHideHotkeyEnabled = await GetBoolSettingAsync("options.status_hide_hotkey_enabled", defaultValue: true);
+            StatusHideHotkeyText = await _database.GetSettingAsync("options.status_hide_hotkey_text") ?? DefaultStatusHideHotkeyText;
+            StatusHideHotkeyNoticeSuppressed = await GetBoolSettingAsync("options.status_hide_hotkey_notice_suppressed", defaultValue: false);
             SelectedProtectedAppProtectionMode = FindProtectedAppModeOption(
                 await _database.GetSettingAsync("options.protected_app_mode"));
             SelectedProtectedAppScanSpeed = FindProtectedAppScanSpeedOption(

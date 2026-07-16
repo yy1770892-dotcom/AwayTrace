@@ -1,6 +1,7 @@
 using AwayTrace.Core.Models;
 using AwayTrace.Core.Services;
 using AwayTrace.Core.Storage;
+using System.Xml.Linq;
 
 var tests = new (string Name, Func<Task> Body)[]
 {
@@ -17,7 +18,9 @@ var tests = new (string Name, Func<Task> Body)[]
     ("AwayTraceDatabase preserves low confidence after ending a session", EndSessionPreservesLowConfidence),
     ("AwayTraceDatabase orders timestamps correctly across UTC offsets", TimestampOrderingIsCorrectAcrossOffsets),
     ("SessionRecoveryService marks active sessions as abnormal", SessionRecoveryMarksActiveSessionsAbnormal),
-    ("SessionRecoveryService leaves empty repositories unchanged", SessionRecoveryDoesNothingWithoutActiveSessions)
+    ("SessionRecoveryService leaves empty repositories unchanged", SessionRecoveryDoesNothingWithoutActiveSessions),
+    ("Protection hotkey help text wraps within its available width", ProtectionHotkeyHelpTextWraps),
+    ("Main window keeps the PIN area visible without a redundant restore hint", MainWindowKeepsPinAreaVisible)
 };
 
 var failures = new List<string>();
@@ -319,6 +322,44 @@ static async Task SessionRecoveryDoesNothingWithoutActiveSessions()
 
     Assert.Equal(0, recovered);
     Assert.Equal(0, repository.MarkedAbnormal.Count);
+}
+
+static Task ProtectionHotkeyHelpTextWraps()
+{
+    var document = XDocument.Load(FindRepositoryFile("src", "AwayTrace.App", "Views", "MainWindow.xaml"));
+    var helpText = document
+        .Descendants()
+        .Single(element =>
+            element.Name.LocalName == "TextBlock" &&
+            element.Attribute("Text")?.Value.StartsWith("창이 보이면 보호 시작", StringComparison.Ordinal) == true);
+
+    Assert.Equal("Wrap", helpText.Attribute("TextWrapping")?.Value);
+    return Task.CompletedTask;
+}
+
+static Task MainWindowKeepsPinAreaVisible()
+{
+    var document = XDocument.Load(FindRepositoryFile("src", "AwayTrace.App", "Views", "MainWindow.xaml"));
+    var window = document.Root ?? throw new InvalidOperationException("MainWindow.xaml must have a root Window element.");
+
+    Assert.Equal("860", window.Attribute("Height")?.Value);
+    Assert.False(document.Descendants().Any(element =>
+        element.Attribute("Text")?.Value.StartsWith("숨긴 창은 Ctrl+Alt+A", StringComparison.Ordinal) == true));
+    return Task.CompletedTask;
+}
+
+static string FindRepositoryFile(params string[] pathParts)
+{
+    for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+    {
+        var candidate = Path.Combine([directory.FullName, .. pathParts]);
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+    }
+
+    throw new FileNotFoundException("Could not locate the requested repository file.", Path.Combine(pathParts));
 }
 
 internal static class Assert
