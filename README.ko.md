@@ -54,6 +54,14 @@ AwayTrace는 클라우드에 기록을 저장하지 않습니다. 파일 내용,
   <img src="docs/screenshot-main.png" width="720" alt="AwayTrace 메인 화면" />
 </p>
 
+<details>
+<summary>파일 기능 더 보기</summary>
+<p align="center"><img src="docs/screenshot-report.png" width="720" /><p>
+<p align="center"><img src="docs/screenshot-messenger.png" width="720" /></p>
+<p align="center"><img src="docs/screenshot-options.png" width="720" /></p>
+<p align="center"><img src="docs/screenshot-usage.png" width="720" /></p>
+</details>
+
 ## 이건 하지 않습니다 (프라이버시 원칙)
 
 AwayTrace는 **감시·스파이웨어·포렌식·법적 증거 도구가 아닙니다.** 다음은 하지 않습니다.
