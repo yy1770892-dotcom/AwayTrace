@@ -29,6 +29,13 @@ AwayTrace shows **observed file-change context**, not proof that a file was open
   <img src="docs/screenshot-report.png" width="720" alt="AwayTrace report screen" />
 </p>
 
+<details>
+<summary>More screenshots (Messenger guard · Options · PC usage)</summary>
+<p align="center"><img src="docs/screenshot-messenger.png" width="720" /></p>
+<p align="center"><img src="docs/screenshot-options.png" width="720" /></p>
+<p align="center"><img src="docs/screenshot-usage.png" width="720" /></p>
+</details>
+
 ## Features
 
 - Local-only SQLite storage under `%LocalAppData%\AwayTrace\awaytrace.db`
