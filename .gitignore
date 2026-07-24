@@ -10,6 +10,7 @@ TestResults/
 *.json
 *.csv
 *.log
+*.exe
 publish/
 publish.7z
 *.7z
