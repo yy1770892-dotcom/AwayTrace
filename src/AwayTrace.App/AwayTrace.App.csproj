@@ -8,6 +8,11 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AwayTrace</AssemblyName>
     <RootNamespace>AwayTrace.App</RootNamespace>
+    <Version>0.1.1</Version>
+    <AssemblyVersion>0.1.1.0</AssemblyVersion>
+    <FileVersion>0.1.1.0</FileVersion>
+    <InformationalVersion>0.1.1</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationIcon>Assets\AwayTrace.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
