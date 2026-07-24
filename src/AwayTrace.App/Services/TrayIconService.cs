@@ -6,6 +6,7 @@ namespace AwayTrace.App.Services;
 
 public sealed class TrayIconService : IDisposable
 {
+    private const string AppIconResourceName = "AwayTrace.App.Assets.AwayTrace.ico";
     private readonly Icon _icon;
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ToolStripMenuItem _stopProtectionItem;
@@ -82,9 +83,29 @@ public sealed class TrayIconService : IDisposable
 
     private static Icon LoadAppIcon()
     {
+        using var resourceStream = typeof(TrayIconService).Assembly.GetManifestResourceStream(AppIconResourceName);
+        if (resourceStream is not null)
+        {
+            using var resourceIcon = new Icon(resourceStream);
+            return (Icon)resourceIcon.Clone();
+        }
+
+        var executablePath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(executablePath))
+        {
+            var executableIcon = Icon.ExtractAssociatedIcon(executablePath);
+            if (executableIcon is not null)
+            {
+                return executableIcon;
+            }
+        }
+
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AwayTrace.ico");
-        return File.Exists(iconPath)
-            ? new Icon(iconPath)
-            : (Icon)SystemIcons.Shield.Clone();
+        if (File.Exists(iconPath))
+        {
+            return new Icon(iconPath);
+        }
+
+        throw new InvalidOperationException("AwayTrace 아이콘 리소스를 불러올 수 없습니다.");
     }
 }

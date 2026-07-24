@@ -14,6 +14,7 @@
     <ProjectReference Include="..\AwayTrace.Core\AwayTrace.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets\AwayTrace.ico" LogicalName="AwayTrace.App.Assets.AwayTrace.ico" />
     <None Update="Assets\AwayTrace.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

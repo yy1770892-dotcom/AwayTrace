@@ -20,7 +20,9 @@ var tests = new (string Name, Func<Task> Body)[]
     ("SessionRecoveryService marks active sessions as abnormal", SessionRecoveryMarksActiveSessionsAbnormal),
     ("SessionRecoveryService leaves empty repositories unchanged", SessionRecoveryDoesNothingWithoutActiveSessions),
     ("Protection hotkey help text wraps within its available width", ProtectionHotkeyHelpTextWraps),
-    ("Main window keeps the PIN area visible without a redundant restore hint", MainWindowKeepsPinAreaVisible)
+    ("Main window keeps the PIN area visible without a redundant restore hint", MainWindowKeepsPinAreaVisible),
+    ("Tray icon loads the icon embedded in the executable", TrayIconLoadsEmbeddedExecutableIcon),
+    ("Tray icon fallback uses the embedded AwayTrace resource", TrayIconFallbackUsesAwayTraceResource)
 };
 
 var failures = new List<string>();
@@ -345,6 +347,36 @@ static Task MainWindowKeepsPinAreaVisible()
     Assert.Equal("860", window.Attribute("Height")?.Value);
     Assert.False(document.Descendants().Any(element =>
         element.Attribute("Text")?.Value.StartsWith("숨긴 창은 Ctrl+Alt+A", StringComparison.Ordinal) == true));
+    return Task.CompletedTask;
+}
+
+static Task TrayIconLoadsEmbeddedExecutableIcon()
+{
+    var source = File.ReadAllText(
+        FindRepositoryFile("src", "AwayTrace.App", "Services", "TrayIconService.cs"));
+
+    Assert.True(
+        source.Contains("Environment.ProcessPath", StringComparison.Ordinal) &&
+        source.Contains("Icon.ExtractAssociatedIcon", StringComparison.Ordinal),
+        "TrayIconService must load the AwayTrace icon embedded in the executable before using a fallback icon.");
+    return Task.CompletedTask;
+}
+
+static Task TrayIconFallbackUsesAwayTraceResource()
+{
+    var source = File.ReadAllText(
+        FindRepositoryFile("src", "AwayTrace.App", "Services", "TrayIconService.cs"));
+    var project = XDocument.Load(
+        FindRepositoryFile("src", "AwayTrace.App", "AwayTrace.App.csproj"));
+
+    Assert.False(
+        source.Contains("SystemIcons.Shield", StringComparison.Ordinal),
+        "TrayIconService must never fall back to the Windows four-color shield.");
+    Assert.True(
+        project.Descendants().Any(element =>
+            element.Name.LocalName == "EmbeddedResource" &&
+            element.Attribute("Include")?.Value == @"Assets\AwayTrace.ico"),
+        "AwayTrace.ico must be embedded so the tray icon does not depend on an external file.");
     return Task.CompletedTask;
 }
 
