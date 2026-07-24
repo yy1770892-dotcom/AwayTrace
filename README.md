@@ -4,95 +4,172 @@
 
 <h1 align="center">AwayTrace</h1>
 
-<p align="center"><b>Know what happened on your PC while you were away.<br/>Nothing leaves your computer.</b></p>
+<h2 align="center">Protect your PC before you step away.</h2>
 
 <p align="center">
+Lock sensitive work folders so they cannot be opened,<br/>
+keep messenger windows out of sight,<br/>
+and return to a timeline of file changes and PC activity.
+</p>
+
+<p align="center"><b>All records stay on your computer. Nothing is sent to an external server or cloud.</b></p>
+
+<p align="center">
+  <a href="../../releases/latest">Download AwayTrace</a> ·
   <a href="README.ko.md">한국어 README</a> ·
-  <a href="PRIVACY.md">Privacy Principles</a> ·
-  <a href="../../releases/latest">Download</a>
+  <a href="PRIVACY.md">Privacy Principles</a>
 </p>
 
 ---
 
-AwayTrace is a free, open-source Windows 10/11 desktop app for one situation: you step away from your own PC and want to review file-change context and PC activity without installing anything that spies on anyone.
+Meetings, lunch, or even a quick trip away from your desk can mean leaving a PC behind.
 
-It is not spyware, employee monitoring software, or a forensic tool. It records **observed file-change context**, not proof that a file was opened or read.
+AwayTrace is a personal privacy app for Windows 10/11. It records whether files changed while you were away and protects selected folders and messenger windows.
 
-## Screenshots
+It does not film anyone or track their behavior. It does not record file contents, keystrokes, your screen, or messenger conversations. On a PC that you own, AwayTrace helps you review **file-change and PC-activity context** from protection sessions that you start yourself.
+
+## How AwayTrace Works
+
+### 1. Choose What to Protect
+
+Folders can be added for different purposes.
+
+- **Record folder:** Records file creation, modification, deletion, and rename events.
+- **Locked folder:** Records changes and uses Windows permissions to block access.
+- **Messenger protection:** Hides the windows of running messenger or work apps, or terminates the apps.
+
+Use only the features you need. You can record changes without locking a folder.
+
+### 2. Start Protection Before You Step Away
+
+Starting protection begins file-change recording for your selected folders and applies the protection mode chosen for locked folders and registered apps.
+
+AwayTrace can also lock the Windows session when protection starts. Even when its window is hidden, AwayTrace keeps working in the background.
+
+### 3. Review the Session When You Return
+
+Enter your PIN to stop protection and open the Away Report for that session.
+
+The report shows what changed and when. If no file changes were observed, it says so clearly.
+
+## See the Session at a Glance
 
 <p align="center">
-  <img src="docs/screenshot-main.png" width="720" alt="AwayTrace main screen" />
+  <img src="docs/screenshot-report.png" width="720" alt="AwayTrace Away Report" />
 </p>
+
+The Away Report presents the events observed between the start and end of a protection session as one timeline.
+
+- File creation, modification, deletion, and renames
+- Protection start and stop
+- Windows session lock and unlock
+- Protection actions for registered messenger and work apps
+- Monitoring errors and possible recording gaps
+
+Filter the timeline by event type or export it as a CSV or JSON file.
+
+If AwayTrace exits unexpectedly or a recording session is interrupted, the report does not present the session as complete. It is marked **"Low confidence"** to show that the timeline may contain gaps.
+
+The report is a reference record of observed file-change context. It does not prove who changed a file or whether someone opened, read, or copied it.
+
+## Manage Important Folders in Two Ways
 
 <p align="center">
-  <img src="docs/screenshot-report.png" width="720" alt="Away Report timeline" />
+  <img src="docs/screenshot-main.png" width="720" alt="AwayTrace main window" />
 </p>
 
-<details>
-<summary>More screenshots (Messenger guard · Options · PC usage)</summary>
-<p align="center"><img src="docs/screenshot-messenger.png" width="720" alt="Messenger guard" /></p>
-<p align="center"><img src="docs/screenshot-options.png" width="720" alt="Options" /></p>
-<p align="center"><img src="docs/screenshot-usage.png" width="720" alt="PC usage timeline" /></p>
-</details>
+A **record folder** remains accessible and works as usual. AwayTrace only records file changes observed during protection.
 
-## What You Get
+A **locked folder** uses Windows NTFS permissions to block access for the current Windows account. When protection ends, AwayTrace removes that access restriction.
 
-**1. Nothing leaves your PC.**
-No cloud, no server, no telemetry. Everything is stored in a local SQLite file (`%LocalAppData%\AwayTrace\awaytrace.db`). AwayTrace does not initiate network connections; you can inspect the source yourself (point 7).
+The folder lock remains in place across a reboot. With automatic protection recovery enabled, AwayTrace can resume the previous protection session after the next Windows sign-in.
 
-**2. Folder lock while you're away.**
-Locked folders are blocked using Windows/NTFS permissions — enforcement is done by Windows itself, not by this app. The lock **survives reboots**: turning the PC off and on again does not unlock your folders.
+## Protect Messenger Windows Too
 
-**3. Away Report.**
-Record folders get a timeline of file created / modified / deleted / renamed events, with filters and CSV export. You come back, you read what changed.
+Register KakaoTalk, a work messenger, or another app whose on-screen content you want to keep out of sight.
 
-**4. PC usage timeline.**
-See power-on/shutdown estimates from the Windows event log, activity outside your normal hours, and AwayTrace launch and normal-exit records that help reveal unexplained gaps.
+- **Hide windows:** Keeps the app running but hides its visible windows.
+- **Terminate app:** Terminates the registered app when it runs.
+- **Leave open:** Leaves registered apps alone while other AwayTrace features remain active.
 
-**5. Messenger guard.**
-Registered apps (e.g. KakaoTalk) can have their windows hidden or their processes terminated during protection. Hidden windows are restored afterward; terminated apps are not relaunched. AwayTrace never reads chat content — it only handles windows or processes.
+Windows hidden by AwayTrace are shown again when protection ends. Apps terminated by AwayTrace are not relaunched automatically.
 
-**6. PIN lock + interface hide hotkey.**
-Stopping protection normally through the app requires a PIN (stored as a PBKDF2-SHA256 hash, never plain text — 5 failed attempts trigger a lockout). A global hotkey hides the app's windows, taskbar presence, and tray icon, and brings them back. The process remains visible in Task Manager.
+AwayTrace does not use an official messenger integration. It works with running Windows app windows and processes, and it does not inspect conversations or read status.
 
-**7. Open source for inspection.**
-Every claim above can be inspected in this repository. There is no keylogging, screen capture, or data-collection code in the AwayTrace source — you do not have to rely on marketing claims; you can read the code.
+## Review PC Activity Context
 
-## What It Does Not Do
+AwayTrace uses Windows system records to show estimated PC startup and shutdown times, along with unexpected shutdown records.
 
-AwayTrace does not:
+Set your usual working hours to distinguish records found outside that schedule. AwayTrace launch and normal-exit records are shown as well, helping you review unexplained gaps.
 
-- send data to a server or cloud
-- record keystrokes, screenshots, or clipboard contents
-- use webcam or microphone input
-- read or store file contents, or store file hashes
-- inspect messenger messages or read status
-- identify who performed an action
-- prove that a file was opened, read, or copied
-- claim to provide legal or forensic evidence
+The PC activity view is reference information assembled from the Windows event log. It is not a complete record of every action, and it may not include all sleep and resume activity.
 
-## Honest Limitations
+## Control Protection With a PIN
 
-`FileSystemWatcher` observes file creation, modification, deletion, and renames. It **cannot** detect that a file was merely opened, read, or copied out — Windows does not expose that to normal apps, and we don't pretend otherwise.
+The AwayTrace PIN is separate from your Windows sign-in password.
 
-Locked folders are prevention, not detection: denied access attempts are blocked by Windows but **not recorded** in v0.1.
+The PIN is never stored as plain text. It is stored locally as a PBKDF2-HMAC-SHA256 hash. After five consecutive failed attempts, another attempt is blocked for 30 seconds.
 
-While the PC is off or AwayTrace is not running, file events are not recorded (the lock still holds). Sessions interrupted this way are marked as low confidence, and the PC usage timeline shows boot/shutdown context for the gap.
+A global hotkey can hide the AwayTrace window, taskbar presence, and tray icon, then restore them with the same key. This only hides the interface. The AwayTrace process remains visible in Task Manager.
 
-## Responsible Use
+## Records Stay on Your Computer
 
-⚠️ AwayTrace is a Windows 10/11 desktop program.
+AwayTrace has no account registration or sign-in process.
 
-Use it only on a PC that you own or are authorized to manage, and only for personal privacy protection. Installing it on someone else's PC without permission may create legal problems.
+It does not use a server or cloud service, and AwayTrace does not send its records elsewhere. Settings and records are stored in a local SQLite database at:
+
+```text
+%LocalAppData%\AwayTrace\awaytrace.db
+```
+
+Stored data includes protection sessions, registered folders, observed file events, protected-app settings, and PC activity context. File contents are not stored.
+
+The complete source code is public. You can inspect this repository to see what AwayTrace records and how the data is stored.
+
+## Information AwayTrace Does Not Record
+
+AwayTrace does not collect or record:
+
+- File contents or file hashes
+- Keystrokes or clipboard contents
+- Screens or screenshots
+- Webcam or microphone input
+- Messenger conversations or read status
+- Records of files being opened or read
+- Records proving that a file was copied
+- The identity of a user or actor
+
+AwayTrace is not designed for employee monitoring, identifying intruders, forensic investigation, or collecting legal evidence.
+
+## Things to Know
+
+AwayTrace records **observed file-change context**. It can record when a file is created, modified, deleted, or renamed, but it cannot tell when a file is merely opened, read, or copied.
+
+Windows blocks access to locked folders. However, this version does not record that someone clicked a locked folder or attempted to access it.
+
+Messenger window protection checks registered apps at a selected interval. Depending on the app and PC state, a window may appear briefly before it is hidden. This is a supporting privacy feature, not the same as a dedicated security product.
+
+AwayTrace cannot record file changes while the PC is off or the app is not running. A user with administrator access to the PC can also change folder permissions or terminate or remove the app.
+
+For these reasons, AwayTrace is a personal tool for reviewing changes while you were away and reducing the exposure of sensitive information. It is not a tool for proving file access or intrusion.
 
 ## Install
 
-1. Download `AwayTrace.exe` from the [latest release](../../releases/latest)
-2. Run it — no installer, no .NET runtime required (self-contained single file)
+1. Download `AwayTrace.exe` from the [latest release](../../releases/latest).
+2. Run the downloaded file.
+3. Set a separate AwayTrace PIN on first launch.
 
-Because this is an unsigned personal open-source app, Windows SmartScreen may show an "Unknown publisher" warning. This does not mean the app is malware. If you trust the release source, choose `More info` → `Run anyway`.
+No installer or separate .NET runtime is required.
 
-## Build From Source
+AwayTrace is currently an unsigned personal open-source app. Windows SmartScreen may show an "Unknown publisher" warning on first launch. Check the release source and file before deciding whether to select `More info` and run it.
+
+## Before You Use AwayTrace
+
+AwayTrace is a Windows 10/11 desktop application.
+
+Use it for personal privacy protection only on a PC that you own or are authorized to manage. Installing it on another person's PC without consent or using it for surveillance goes against the purpose of AwayTrace.
+
+## For Developers and Reviewers
 
 Requirements: Windows 10/11, .NET 8 SDK
 
@@ -102,26 +179,25 @@ dotnet test
 dotnet run --project src\AwayTrace.App\AwayTrace.App.csproj
 ```
 
-Publish a single self-contained Windows x64 executable:
+Publish a single self-contained executable:
 
 ```powershell
 cd src\AwayTrace.App
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
 ```
 
-Output: `src\AwayTrace.App\bin\Release\net8.0-windows\win-x64\publish\AwayTrace.exe`
-
-Only upload the single `AwayTrace.exe` file to Releases. Do not commit or upload local `publish/`, `bin/`, `obj/`, `.pdb`, or working-process files.
-
-## Data Stored Locally
+Main local data tables:
 
 ```text
-%LocalAppData%\AwayTrace\awaytrace.db
+settings
+monitored_folders
+sessions
+file_events
+protected_apps
+pc_usage_events
 ```
 
-Main tables: `settings`, `monitored_folders`, `sessions`, `file_events`, `protected_apps`, `pc_usage_events`.
-
-`file_events` stores timestamp, event type, path, old path when applicable, and session ID. It does not store file contents.
+`file_events` stores the timestamp, event type, path, previous path when applicable, and session ID. It does not store file contents.
 
 ## License
 
